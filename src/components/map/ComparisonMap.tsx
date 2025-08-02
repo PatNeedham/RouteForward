@@ -29,6 +29,7 @@ import ShareButton from './ShareButton'
 
 // Hooks and utilities
 import { useUrlState } from '@/hooks/useUrlState'
+import { semanticColors } from '@/config/colors'
 
 // Leaflet Icon workaround
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
@@ -49,11 +50,7 @@ type StreetNetworkProperties = {
 
 type StreetFeature = Feature<LineString, StreetNetworkProperties>
 
-const trafficColorMapping: { [key: string]: string } = {
-  heavy: '#dc2626', // red-600
-  medium: '#f59e0b', // amber-500
-  light: '#facc15', // yellow-400
-}
+const trafficColorMapping: { [key: string]: string } = semanticColors.traffic
 
 const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
   const map = useMap()
@@ -110,8 +107,10 @@ const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
 
 const MapViewportSync = ({
   onViewportChange,
+  currentViewport,
 }: {
   onViewportChange: (center: [number, number], zoom: number) => void
+  currentViewport: { center: [number, number]; zoom: number }
 }) => {
   const map = useMapEvents({
     moveend: () => {
@@ -125,6 +124,22 @@ const MapViewportSync = ({
       onViewportChange([center.lat, center.lng], zoom)
     },
   })
+
+  // Update map view when viewport state changes (e.g., from URL)
+  useEffect(() => {
+    const mapCenter = map.getCenter()
+    const mapZoom = map.getZoom()
+    const [stateLat, stateLng] = currentViewport.center
+
+    // Only update if there's a significant difference to avoid infinite loops
+    const centerDiff =
+      Math.abs(mapCenter.lat - stateLat) + Math.abs(mapCenter.lng - stateLng)
+    const zoomDiff = Math.abs(mapZoom - currentViewport.zoom)
+
+    if (centerDiff > 0.001 || zoomDiff > 0.1) {
+      map.setView(currentViewport.center, currentViewport.zoom)
+    }
+  }, [map, currentViewport])
 
   return null
 }
@@ -178,8 +193,16 @@ const ComparisonMap: React.FC = () => {
     return {}
   }
 
-  const hblrStyle: PathOptions = { color: '#00AEEF', weight: 3, opacity: 0.8 }
-  const newRouteStyle: PathOptions = { color: '#32CD32', weight: 5, opacity: 1 }
+  const hblrStyle: PathOptions = {
+    color: semanticColors.routes.hblr,
+    weight: 3,
+    opacity: 0.8,
+  }
+  const newRouteStyle: PathOptions = {
+    color: semanticColors.routes.newRoute,
+    weight: 5,
+    opacity: 1,
+  }
 
   const handleRouteCreate = useCallback(
     (e: any) => {
@@ -206,13 +229,26 @@ const ComparisonMap: React.FC = () => {
 
   const handleViewportChange = useCallback(
     (center: [number, number], zoom: number) => {
+      // Only update state if we're not in the initial loading phase
+      // and the values have actually changed
       if (isInitialized) {
-        updateMapState({
-          viewport: { center, zoom },
-        })
+        const currentCenter = mapState.viewport.center
+        const currentZoom = mapState.viewport.zoom
+
+        // Check if the viewport has actually changed to avoid unnecessary updates
+        const centerDiff =
+          Math.abs(currentCenter[0] - center[0]) +
+          Math.abs(currentCenter[1] - center[1])
+        const zoomDiff = Math.abs(currentZoom - zoom)
+
+        if (centerDiff > 0.001 || zoomDiff > 0.1) {
+          updateMapState({
+            viewport: { center, zoom },
+          })
+        }
       }
     },
-    [updateMapState, isInitialized],
+    [updateMapState, isInitialized, mapState.viewport],
   )
 
   // Handle invalid URL state
@@ -238,8 +274,8 @@ const ComparisonMap: React.FC = () => {
   }
 
   return (
-    <>
-      {/* Share Button */}
+    <div className="relative h-full w-full">
+      {/* Share Button - positioned relative to the main container */}
       <ShareButton
         shareableUrl={shareableUrl}
         className="absolute top-4 right-4 z-[1000]"
@@ -276,7 +312,10 @@ const ComparisonMap: React.FC = () => {
                   onEachFeature={onEachFeature}
                 />
               )}
-              <MapViewportSync onViewportChange={handleViewportChange} />
+              <MapViewportSync
+                onViewportChange={handleViewportChange}
+                currentViewport={mapState.viewport}
+              />
             </MapContainer>
           </div>
         </div>
@@ -316,7 +355,10 @@ const ComparisonMap: React.FC = () => {
               )}
               <GeoJSON data={mapState.routes} style={newRouteStyle} />
               <GeomanControl onCreate={handleRouteCreate} />
-              <MapViewportSync onViewportChange={handleViewportChange} />
+              <MapViewportSync
+                onViewportChange={handleViewportChange}
+                currentViewport={mapState.viewport}
+              />
             </MapContainer>
           </div>
         </div>
@@ -325,7 +367,7 @@ const ComparisonMap: React.FC = () => {
         value={mapState.simulation.time}
         onChange={handleTimeChange}
       />
-    </>
+    </div>
   )
 }
 

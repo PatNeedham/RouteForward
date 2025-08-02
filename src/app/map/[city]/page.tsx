@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import UnsupportedCity from '@/components/map/UnsupportedCity'
 import ClientMap from '@/components/map/ClientMap'
+import { semanticColors } from '@/config/colors'
 
 // Define a list of supported cities
 const SUPPORTED_CITIES = ['jersey-city']
@@ -19,7 +20,7 @@ export default async function MapPage({
       <header className="flex items-center justify-between p-4 bg-gray-900 shadow-md z-10">
         <Link
           href="/"
-          className="flex items-center text-sky-400 hover:text-sky-300"
+          className={`flex items-center ${semanticColors.link.primary.color} ${semanticColors.link.primary.hover}`}
         >
           <ChevronLeft className="h-6 w-6" />
           Back to Home

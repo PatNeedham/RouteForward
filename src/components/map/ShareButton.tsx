@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Share2, Copy, Check, ExternalLink } from 'lucide-react'
 import { createShortUrl } from '@/utils/urlState'
+import { semanticColors } from '@/config/colors'
 
 interface ShareButtonProps {
   shareableUrl: string
@@ -73,7 +74,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     <div className={`relative ${className}`}>
       <button
         onClick={handleShare}
-        className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        className={`flex items-center space-x-2 px-3 py-2 ${semanticColors.button.primary.bg} ${semanticColors.button.primary.hover} ${semanticColors.button.primary.text} rounded-lg transition-colors`}
         title="Share this scenario"
       >
         <Share2 className="h-4 w-4" />
@@ -140,7 +141,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
                   <button
                     onClick={generateShortUrl}
                     disabled={isCreatingShortUrl}
-                    className="p-1 bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50"
+                    className={`p-1 ${semanticColors.button.primary.bg} ${semanticColors.button.primary.hover} rounded disabled:opacity-50`}
                     title="Generate short URL"
                   >
                     <ExternalLink className="h-4 w-4" />
