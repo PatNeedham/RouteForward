@@ -16,7 +16,7 @@ export default async function MapPage({
 
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-800 text-white">
-      <header className="flex items-center p-4 bg-gray-900 shadow-md z-10">
+      <header className="flex items-center justify-between p-4 bg-gray-900 shadow-md z-10">
         <Link
           href="/"
           className="flex items-center text-sky-400 hover:text-sky-300"
@@ -27,6 +27,7 @@ export default async function MapPage({
         <h1 className="text-2xl font-bold text-center flex-grow capitalize">
           {city.replace('-', ' ')} Transit Simulator
         </h1>
+        <div className="w-20"> {/* Spacer to balance the layout */}</div>
       </header>
       <main className="flex-grow relative">
         {isSupported ? <ClientMap /> : <UnsupportedCity city={city} />}
