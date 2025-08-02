@@ -52,11 +52,7 @@ const trafficColorMapping: { [key: string]: string } = {
   light: '#facc15', // yellow-400
 }
 
-const GeomanControl = ({
-  onCreate,
-}: {
-  onCreate: (e: L.LeafletEvent) => void
-}) => {
+const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
   const map = useMap()
 
   useEffect(() => {
@@ -146,7 +142,7 @@ const ComparisonMap: React.FC = () => {
         // Convert Uint8Array to binary string for btoa
         const binaryString = String.fromCharCode.apply(
           null,
-          compressed as unknown as number[],
+          Array.from(compressed),
         )
         const encoded = btoa(binaryString)
         const params = new URLSearchParams(searchParams.toString())
@@ -196,7 +192,7 @@ const ComparisonMap: React.FC = () => {
   const hblrStyle: PathOptions = { color: '#00AEEF', weight: 3, opacity: 0.8 }
   const newRouteStyle: PathOptions = { color: '#32CD32', weight: 5, opacity: 1 }
 
-  const _onCreate = (e: L.LeafletEvent & { layer?: L.Layer }) => {
+  const _onCreate = (e: any) => {
     if (e.layer && e.layer instanceof L.Polyline) {
       const geojson = e.layer.toGeoJSON() as Feature<LineString>
       const updatedRoutes: FeatureCollection<LineString> = {

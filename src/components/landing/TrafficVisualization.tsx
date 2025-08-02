@@ -100,7 +100,7 @@ const TrafficVisualization: React.FC<TrafficVisualizationProps> = ({
       .attr('r', 2)
       .attr('fill', (d) => (d.link.fast ? '#0ea5e9' : '#9ca3af')) // sky-500 for fast, gray-400 for normal
 
-    function updateParticles() {
+    const animate = () => {
       particleShapes.each(function (d) {
         d.position += d.link.fast ? 0.01 : 0.003
         if (d.position > 1) {
@@ -115,10 +115,13 @@ const TrafficVisualization: React.FC<TrafficVisualizationProps> = ({
         d3.select(this).attr('cx', x).attr('cy', y)
       })
 
-      requestAnimationFrame(updateParticles)
+      frameId.current = requestAnimationFrame(animate)
     }
 
-    updateParticles()
+    const frameId = { current: 0 }
+    frameId.current = requestAnimationFrame(animate)
+
+    return () => cancelAnimationFrame(frameId.current)
   }, [width, height])
 
   return <svg ref={ref} width={width} height={height} />
