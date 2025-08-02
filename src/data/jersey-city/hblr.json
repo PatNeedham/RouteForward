@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hudson-Bergen Light Rail",
+        "color": "#00AEEF"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.033, 40.712],
+          [-74.035, 40.715],
+          [-74.038, 40.719],
+          [-74.042, 40.725],
+          [-74.048, 40.728],
+          [-74.055, 40.730],
+          [-74.065, 40.732]
+        ]
+      }
+    }
+  ]
+}

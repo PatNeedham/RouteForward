@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "JFK Boulevard",
+        "traffic": {
+          "08:00": "heavy", "12:00": "medium", "16:00": "heavy", "20:00": "light"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.075, 40.715], [-74.073, 40.720], [-74.071, 40.725], [-74.069, 40.730]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bergen Avenue",
+        "traffic": {
+          "08:00": "medium", "12:00": "medium", "16:00": "heavy", "20:00": "light"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.065, 40.718], [-74.065, 40.723], [-74.065, 40.728]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ocean Avenue",
+        "traffic": {
+          "08:00": "light", "12:00": "medium", "16:00": "medium", "20:00": "light"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.085, 40.700], [-74.082, 40.705], [-74.079, 40.710]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Newark Avenue",
+        "traffic": {
+          "08:00": "heavy", "12:00": "heavy", "16:00": "heavy", "20:00": "medium"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.045, 40.725], [-74.050, 40.726], [-74.055, 40.727], [-74.060, 40.728]
+        ]
+      }
+    }
+  ]
+}

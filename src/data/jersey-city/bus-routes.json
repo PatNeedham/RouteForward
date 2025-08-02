@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Route 87",
+        "color": "#FF6347"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.075, 40.715],
+          [-74.070, 40.720],
+          [-74.065, 40.725],
+          [-74.060, 40.730],
+          [-74.055, 40.735]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Route 1",
+        "color": "#4682B4"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-74.050, 40.710],
+          [-74.055, 40.715],
+          [-74.060, 40.720],
+          [-74.065, 40.725],
+          [-74.070, 40.730]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: 'npm'
+    directory: '/' # Location of package manifests
+    schedule:
+      interval: 'daily'
+    # Add labels for npm pull requests
+    labels:
+      - 'npm'
+      - 'dependencies'
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'daily'
+    # Add labels for GitHub Actions pull requests
+    labels:
+      - 'github-actions'
+      - 'dependencies'
