@@ -52,16 +52,20 @@ const trafficColorMapping: { [key: string]: string } = {
   light: '#facc15', // yellow-400
 }
 
-const GeomanControl = ({ onCreate }: { onCreate: (e: L.LeafletEvent) => void }) => {
-  const map = useMap();
+const GeomanControl = ({
+  onCreate,
+}: {
+  onCreate: (e: L.LeafletEvent) => void
+}) => {
+  const map = useMap()
 
   useEffect(() => {
     // Import Geoman on the client side after the map is available
-    import("@geoman-io/leaflet-geoman-free");
+    import('@geoman-io/leaflet-geoman-free')
 
     // Initialize Geoman controls
     map.pm.addControls({
-      position: "topright",
+      position: 'topright',
       drawPolygon: false,
       drawMarker: false,
       drawCircleMarker: false,
@@ -72,26 +76,26 @@ const GeomanControl = ({ onCreate }: { onCreate: (e: L.LeafletEvent) => void }) 
       editMode: false,
       dragMode: false,
       rotateMode: false,
-    });
+    })
 
     // Event listener for when a new shape is created
-    map.on("pm:create", (e) => {
-      if (e.shape === "Line") {
-        onCreate(e);
+    map.on('pm:create', (e) => {
+      if (e.shape === 'Line') {
+        onCreate(e)
       }
-    });
+    })
 
     // Cleanup function
     return () => {
       if (map.pm) {
-        map.pm.removeControls();
-        map.off("pm:create");
+        map.pm.removeControls()
+        map.off('pm:create')
       }
-    };
-  }, [map, onCreate]);
+    }
+  }, [map, onCreate])
 
-  return null;
-};
+  return null
+}
 
 const ComparisonMap: React.FC = () => {
   const router = useRouter()

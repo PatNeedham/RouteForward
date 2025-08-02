@@ -9,6 +9,7 @@
     "lint": "next lint",
     "format:check": "npx prettier --check .",
     "format": "npx prettier --write .",
+    "typecheck": "npx tsc --noEmit",
     "prepare": "husky"
   },
   "dependencies": {
