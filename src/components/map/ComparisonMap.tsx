@@ -1,171 +1,268 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { MapContainer, TileLayer, GeoJSON, FeatureGroup } from "react-leaflet";
-import { EditControl } from "react-leaflet-draw";
-import "leaflet/dist/leaflet.css";
-import "leaflet-draw/dist/leaflet.draw.css";
-import L from "leaflet";
-import pako from "pako";
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  FeatureGroup,
+  useMap,
+} from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
+import L, { Layer, PathOptions, StyleFunction } from 'leaflet'
+import pako from 'pako'
+import {
+  Feature,
+  FeatureCollection,
+  GeoJSON as GeoJSONObject,
+  LineString,
+} from 'geojson'
 
 // Data
-import hblrData from "@/data/jersey-city/hblr.json";
-import streetNetworkData from "@/data/jersey-city/street-network.json";
+import hblrData from '@/data/jersey-city/hblr.json'
+import streetNetworkData from '@/data/jersey-city/street-network.json'
 
 // Components
-import TimeSlider from "./TimeSlider";
+import TimeSlider from './TimeSlider'
 
 // Leaflet Icon workaround
-import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
+import iconUrl from 'leaflet/dist/images/marker-icon.png'
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: iconRetinaUrl.src,
   iconUrl: iconUrl.src,
   shadowUrl: shadowUrl.src,
-});
+})
 
-interface ComparisonMapProps {
-  city: string;
+// Type definitions
+type StreetNetworkProperties = {
+  name: string
+  traffic: { [key: string]: 'heavy' | 'medium' | 'light' }
 }
 
+type StreetFeature = Feature<LineString, StreetNetworkProperties>
+
 const trafficColorMapping: { [key: string]: string } = {
-  heavy: "#dc2626", // red-600
-  medium: "#f59e0b", // amber-500
-  light: "#facc15", // yellow-400
+  heavy: '#dc2626', // red-600
+  medium: '#f59e0b', // amber-500
+  light: '#facc15', // yellow-400
+}
+
+const GeomanControl = ({ onCreate }: { onCreate: (e: L.LeafletEvent) => void }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    // Import Geoman on the client side after the map is available
+    import("@geoman-io/leaflet-geoman-free");
+
+    // Initialize Geoman controls
+    map.pm.addControls({
+      position: "topright",
+      drawPolygon: false,
+      drawMarker: false,
+      drawCircleMarker: false,
+      drawRectangle: false,
+      drawCircle: false,
+      drawText: false,
+      cutPolygon: false,
+      editMode: false,
+      dragMode: false,
+      rotateMode: false,
+    });
+
+    // Event listener for when a new shape is created
+    map.on("pm:create", (e) => {
+      if (e.shape === "Line") {
+        onCreate(e);
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      if (map.pm) {
+        map.pm.removeControls();
+        map.off("pm:create");
+      }
+    };
+  }, [map, onCreate]);
+
+  return null;
 };
 
-const ComparisonMap: React.FC<ComparisonMapProps> = ({ city }) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+const ComparisonMap: React.FC = () => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  const [simTime, setSimTime] = useState("08:00");
-  const [newRoutes, setNewRoutes] = useState<any>({
-    type: "FeatureCollection",
+  const [simTime, setSimTime] = useState('08:00')
+  const [newRoutes, setNewRoutes] = useState<FeatureCollection<LineString>>({
+    type: 'FeatureCollection',
     features: [],
-  });
+  })
 
   // Decode routes from URL on initial load
   useEffect(() => {
-    const routesParam = searchParams.get("routes");
+    const routesParam = searchParams.get('routes')
     if (routesParam) {
       try {
-        const decoded = atob(routesParam);
-        const decompressed = pako.inflate(decoded, { to: "string" });
-        setNewRoutes(JSON.parse(decompressed));
+        const decoded = atob(routesParam)
+        // Convert binary string to Uint8Array
+        const charData = decoded.split('').map((x) => x.charCodeAt(0))
+        const binData = new Uint8Array(charData)
+        const decompressed = pako.inflate(binData, { to: 'string' })
+        setNewRoutes(JSON.parse(decompressed))
       } catch (error) {
-        console.error("Failed to decode routes from URL:", error);
+        console.error('Failed to decode routes from URL:', error)
       }
     }
-  }, [searchParams]);
+  }, [searchParams])
 
   // Update URL when routes change
-  const updateUrlWithRoutes = useCallback((routes: any) => {
-    if (routes.features.length > 0) {
-      const jsonString = JSON.stringify(routes);
-      const compressed = pako.deflate(jsonString, { to: "string" });
-      const encoded = btoa(compressed);
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("routes", encoded);
-      router.replace(`${pathname}?${params.toString()}`);
-    }
-  }, [router, pathname, searchParams]);
-
-  const position: [number, number] = [40.7282, -74.0776];
-
-  const onEachFeature = (feature: any, layer: L.Layer) => {
-    if (feature.properties && feature.properties.name) {
-      layer.bindPopup(feature.properties.name);
-    }
-  };
-
-  const getTrafficLevel = (feature: any) => {
-    if (!feature.properties.traffic) return 'light';
-    const times = Object.keys(feature.properties.traffic).sort();
-    let applicableTime = times[0];
-    for (const time of times) {
-      if (simTime >= time) {
-        applicableTime = time;
-      } else {
-        break;
+  const updateUrlWithRoutes = useCallback(
+    (routes: FeatureCollection<LineString>) => {
+      if (routes.features.length > 0) {
+        const jsonString = JSON.stringify(routes)
+        const compressed = pako.deflate(jsonString)
+        // Convert Uint8Array to binary string for btoa
+        const binaryString = String.fromCharCode.apply(
+          null,
+          compressed as unknown as number[],
+        )
+        const encoded = btoa(binaryString)
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('routes', encoded)
+        router.replace(`${pathname}?${params.toString()}`)
       }
+    },
+    [router, pathname, searchParams],
+  )
+
+  const position: [number, number] = [40.7282, -74.0776]
+
+  const onEachFeature = (feature: Feature, layer: Layer) => {
+    if (feature.properties && feature.properties.name) {
+      layer.bindPopup(feature.properties.name)
     }
-    return feature.properties.traffic[applicableTime];
   }
 
-  const streetNetworkStyle = (feature: any) => {
-    const trafficLevel = getTrafficLevel(feature);
-    return {
-      color: trafficColorMapping[trafficLevel] || "#ffffff",
-      weight: 4,
-      opacity: 0.9,
-    };
-  };
-  
-  const hblrStyle = { color: "#00AEEF", weight: 3, opacity: 0.8 };
-  const newRouteStyle = { color: "#32CD32", weight: 5, opacity: 1 };
+  const getTrafficLevel = (feature: StreetFeature) => {
+    if (!feature.properties.traffic) return 'light'
+    const times = Object.keys(feature.properties.traffic).sort()
+    let applicableTime = times[0]
+    for (const time of times) {
+      if (simTime >= time) {
+        applicableTime = time
+      } else {
+        break
+      }
+    }
+    return feature.properties.traffic[applicableTime]
+  }
 
-  const _onCreate = (e: any) => {
-    const { layerType, layer } = e;
-    if (layerType === "polyline") {
-      const geojson = layer.toGeoJSON();
-      const updatedRoutes = {
+  const streetNetworkStyle: StyleFunction<StreetNetworkProperties> = (
+    feature,
+  ) => {
+    if (feature) {
+      const trafficLevel = getTrafficLevel(feature as StreetFeature)
+      return {
+        color: trafficColorMapping[trafficLevel] || '#ffffff',
+        weight: 4,
+        opacity: 0.9,
+      }
+    }
+    return {}
+  }
+
+  const hblrStyle: PathOptions = { color: '#00AEEF', weight: 3, opacity: 0.8 }
+  const newRouteStyle: PathOptions = { color: '#32CD32', weight: 5, opacity: 1 }
+
+  const _onCreate = (e: L.LeafletEvent & { layer?: L.Layer }) => {
+    if (e.layer && e.layer instanceof L.Polyline) {
+      const geojson = e.layer.toGeoJSON() as Feature<LineString>
+      const updatedRoutes: FeatureCollection<LineString> = {
         ...newRoutes,
         features: [...newRoutes.features, geojson],
-      };
-      setNewRoutes(updatedRoutes);
-      updateUrlWithRoutes(updatedRoutes);
+      }
+      setNewRoutes(updatedRoutes)
+      updateUrlWithRoutes(updatedRoutes)
     }
-  };
+  }
 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full w-full p-4">
         {/* Current State Map */}
         <div className="flex flex-col h-full rounded-lg overflow-hidden">
-          <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">Current State</h2>
+          <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
+            Current State
+          </h2>
           <div className="flex-grow relative">
-            <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
+            <MapContainer
+              center={position}
+              zoom={13}
+              style={{ height: '100%', width: '100%' }}
+            >
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               />
-              <GeoJSON key={simTime} data={streetNetworkData as any} style={streetNetworkStyle} onEachFeature={onEachFeature} />
-              <GeoJSON data={hblrData as any} style={hblrStyle} onEachFeature={onEachFeature} />
+              <GeoJSON
+                key={`current-${simTime}`}
+                data={streetNetworkData as GeoJSONObject}
+                style={streetNetworkStyle}
+                onEachFeature={onEachFeature}
+              />
+              <GeoJSON
+                data={hblrData as GeoJSONObject}
+                style={hblrStyle}
+                onEachFeature={onEachFeature}
+              />
             </MapContainer>
           </div>
         </div>
 
         {/* Enhanced Transit Map */}
         <div className="flex flex-col h-full rounded-lg overflow-hidden">
-          <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">Enhanced Transit</h2>
+          <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
+            Enhanced Transit
+          </h2>
           <div className="flex-grow relative">
-            <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
+            <MapContainer
+              center={position}
+              zoom={13}
+              style={{ height: '100%', width: '100%' }}
+            >
               <FeatureGroup>
-                <EditControl
-                  position="topright"
-                  onCreated={_onCreate}
-                  draw={{ rectangle: false, polygon: false, circle: false, circlemarker: false, marker: false }}
-                />
+                {/* This is where the drawing controls are added */}
               </FeatureGroup>
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               />
-              <GeoJSON key={simTime} data={streetNetworkData as any} style={streetNetworkStyle} onEachFeature={onEachFeature} />
-              <GeoJSON data={hblrData as any} style={hblrStyle} onEachFeature={onEachFeature} />
+              <GeoJSON
+                key={`enhanced-${simTime}`}
+                data={streetNetworkData as GeoJSONObject}
+                style={streetNetworkStyle}
+                onEachFeature={onEachFeature}
+              />
+              <GeoJSON
+                data={hblrData as GeoJSONObject}
+                style={hblrStyle}
+                onEachFeature={onEachFeature}
+              />
               <GeoJSON data={newRoutes} style={newRouteStyle} />
+              <GeomanControl onCreate={_onCreate} />
             </MapContainer>
           </div>
         </div>
       </div>
       <TimeSlider onChange={setSimTime} />
     </>
-  );
-};
+  )
+}
 
-export default ComparisonMap;
-
+export default ComparisonMap

@@ -1,0 +1,6 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+npx next lint
+npx prettier --check .
+npx tsc --noEmit

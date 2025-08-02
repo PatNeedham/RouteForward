@@ -1,21 +1,13 @@
-"use client";
-
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import UnsupportedCity from "@/components/map/UnsupportedCity";
+import ClientMap from "@/components/map/ClientMap";
 
 // Define a list of supported cities
 const SUPPORTED_CITIES = ["jersey-city"];
 
-// Dynamically import the map component to ensure it's client-side only
-const ComparisonMap = dynamic(() => import("@/components/map/ComparisonMap"), {
-  ssr: false,
-  loading: () => <p className="text-center">Loading maps...</p>,
-});
-
-export default function MapPage({ params }: { params: { city: string } }) {
-  const { city } = params;
+export default async function MapPage({ params: paramsPromise }: { params: Promise<{ city: string }> }) {
+  const { city } = await paramsPromise;
   const isSupported = SUPPORTED_CITIES.includes(city);
 
   return (
@@ -30,11 +22,7 @@ export default function MapPage({ params }: { params: { city: string } }) {
         </h1>
       </header>
       <main className="flex-grow relative">
-        {isSupported ? (
-          <ComparisonMap city={city} />
-        ) : (
-          <UnsupportedCity city={city} />
-        )}
+        {isSupported ? <ClientMap /> : <UnsupportedCity city={city} />}
       </main>
     </div>
   );
