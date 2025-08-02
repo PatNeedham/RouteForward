@@ -61,29 +61,41 @@ const GeomanControl = ({
 
   useEffect(() => {
     // Import Geoman on the client side after the map is available
-    import('@geoman-io/leaflet-geoman-free')
+    const initializeGeoman = async () => {
+      try {
+        // Wait for the dynamic import to complete
+        await import('@geoman-io/leaflet-geoman-free')
 
-    // Initialize Geoman controls
-    map.pm.addControls({
-      position: 'topright',
-      drawPolygon: false,
-      drawMarker: false,
-      drawCircleMarker: false,
-      drawRectangle: false,
-      drawCircle: false,
-      drawText: false,
-      cutPolygon: false,
-      editMode: false,
-      dragMode: false,
-      rotateMode: false,
-    })
+        // Now we can safely access map.pm
+        if (map.pm) {
+          // Initialize Geoman controls
+          map.pm.addControls({
+            position: 'topright',
+            drawPolygon: false,
+            drawMarker: false,
+            drawCircleMarker: false,
+            drawRectangle: false,
+            drawCircle: false,
+            drawText: false,
+            cutPolygon: false,
+            editMode: false,
+            dragMode: false,
+            rotateMode: false,
+          })
 
-    // Event listener for when a new shape is created
-    map.on('pm:create', (e) => {
-      if (e.shape === 'Line') {
-        onCreate(e)
+          // Event listener for when a new shape is created
+          map.on('pm:create', (e) => {
+            if (e.shape === 'Line') {
+              onCreate(e)
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Failed to load Geoman library:', error)
       }
-    })
+    }
+
+    initializeGeoman()
 
     // Cleanup function
     return () => {
