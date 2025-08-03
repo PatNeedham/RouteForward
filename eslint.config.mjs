@@ -9,12 +9,22 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 })
 
-export default [
+const eslintConfig = [
   ...compat.extends('next/core-web-vitals'),
   ...compat.extends('prettier'),
   {
     rules: {
       // Add any custom rules here
+      'no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
 ]
+
+export default eslintConfig

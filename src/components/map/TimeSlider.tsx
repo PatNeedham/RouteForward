@@ -4,7 +4,7 @@ import { useState, useEffect, ChangeEvent } from 'react'
 
 interface TimeSliderProps {
   value?: string
-  onChange: (time: string) => void
+  onChange: (_time: string) => void
 }
 
 const formatTime = (minutes: number) => {

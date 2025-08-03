@@ -8,7 +8,6 @@ import {
   SimulationConfig,
   SimulationResult,
   ComparisonResult,
-  TimeWindow,
 } from '@/types/simulation'
 
 // Secure random number generator utility
@@ -330,7 +329,7 @@ export class SimulationEngine {
     const averageWaitTime =
       travelTimes
         .filter((t) => t.mode !== 'walking')
-        .reduce((sum, t) => sum + 5, 0) /
+        .reduce((sum, _t) => sum + 5, 0) /
       Math.max(1, travelTimes.filter((t) => t.mode !== 'walking').length)
 
     const confidence =

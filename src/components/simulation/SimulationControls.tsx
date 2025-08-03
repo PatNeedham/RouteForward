@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Play, Settings, Clock } from 'lucide-react'
 
 interface SimulationControlsProps {
-  onRunSimulation: (config: SimulationControlConfig) => void
+  onRunSimulation: (_config: SimulationControlConfig) => void
   isLoading: boolean
 }
 

@@ -8,9 +8,6 @@
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
-const { pipeline } = require('stream')
-const { promisify } = require('util')
-const streamPipeline = promisify(pipeline)
 
 // NJ Transit GTFS feed URL from Transit.land
 const GTFS_URL = 'https://www.njtransit.com/bus_data.zip'
@@ -74,8 +71,38 @@ async function downloadFile(url, outputPath) {
   })
 }
 
-async function extractZip(zipPath, extractPath) {
-  const { createReadStream } = require('fs')
+// Helper function to handle file extraction
+function handleFileEntry(entry, extractPath, zipfile, reject) {
+  const outputPath = path.join(extractPath, entry.fileName)
+  const outputDir = path.dirname(outputPath)
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true })
+  }
+
+  zipfile.openReadStream(entry, (err, readStream) => {
+    if (err) return reject(err)
+
+    const writeStream = fs.createWriteStream(outputPath)
+    readStream.pipe(writeStream)
+    writeStream.on('close', () => {
+      zipfile.readEntry()
+    })
+  })
+}
+
+// Helper function to handle zip entry processing
+function handleZipEntry(entry, extractPath, zipfile, reject) {
+  if (/\/$/.test(entry.fileName)) {
+    // Directory entry
+    zipfile.readEntry()
+  } else {
+    // File entry
+    handleFileEntry(entry, extractPath, zipfile, reject)
+  }
+}
+
+async function _extractZip(zipPath, extractPath) {
   const yauzl = require('yauzl')
 
   return new Promise((resolve, reject) => {
@@ -84,28 +111,7 @@ async function extractZip(zipPath, extractPath) {
 
       zipfile.readEntry()
       zipfile.on('entry', (entry) => {
-        if (/\/$/.test(entry.fileName)) {
-          // Directory entry
-          zipfile.readEntry()
-        } else {
-          // File entry
-          const outputPath = path.join(extractPath, entry.fileName)
-          const outputDir = path.dirname(outputPath)
-
-          if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true })
-          }
-
-          zipfile.openReadStream(entry, (err, readStream) => {
-            if (err) return reject(err)
-
-            const writeStream = fs.createWriteStream(outputPath)
-            readStream.pipe(writeStream)
-            writeStream.on('close', () => {
-              zipfile.readEntry()
-            })
-          })
-        }
+        handleZipEntry(entry, extractPath, zipfile, reject)
       })
 
       zipfile.on('end', resolve)

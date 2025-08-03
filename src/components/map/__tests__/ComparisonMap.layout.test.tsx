@@ -12,7 +12,7 @@
  * 4. Overflow content should be properly scrollable
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import ComparisonMap from '@/components/map/ComparisonMap'
 import { MapState } from '@/types/mapState'
@@ -40,7 +40,7 @@ jest.mock('react-leaflet', () => ({
       removeControls: jest.fn(),
     },
   }),
-  useMapEvents: (events: any) => {
+  useMapEvents: (_events: any) => {
     const map = {
       getCenter: () => ({ lat: 40.7281, lng: -74.0775 }),
       getZoom: () => 13,
@@ -116,7 +116,7 @@ describe('ComparisonMap Layout Constraints', () => {
 
   test('should demonstrate the layout issue exists - TimeSlider can be pushed off-screen', async () => {
     // This test should FAIL initially, demonstrating the layout problem
-    const { container } = render(
+    const { container: _container } = render(
       <div style={{ height: '100vh', overflow: 'hidden' }}>
         <ComparisonMap {...mockProps} />
       </div>,

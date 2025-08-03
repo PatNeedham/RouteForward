@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ComparisonResult, TravelTimeResult } from '@/types/simulation'
+import { ComparisonResult } from '@/types/simulation'
 import { Clock, TrendingUp, TrendingDown, Route, Users } from 'lucide-react'
 
 interface SimulationResultsProps {

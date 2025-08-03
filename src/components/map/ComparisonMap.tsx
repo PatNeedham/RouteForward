@@ -60,7 +60,7 @@ type StreetFeature = Feature<LineString, StreetNetworkProperties>
 
 const trafficColorMapping: { [key: string]: string } = semanticColors.traffic
 
-const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
+const GeomanControl = ({ onCreate }: { onCreate: (_e: any) => void }) => {
   const map = useMap()
 
   useEffect(() => {
@@ -118,7 +118,7 @@ const MapViewportSync = ({
   currentViewport,
   isController = false,
 }: {
-  onViewportChange: (center: [number, number], zoom: number) => void
+  onViewportChange: (_center: [number, number], _zoom: number) => void
   currentViewport: { center: [number, number]; zoom: number }
   isController?: boolean
 }) => {
@@ -163,7 +163,7 @@ const MapViewportSync = ({
 
 interface ComparisonMapProps {
   mapState: MapState
-  updateMapState: (partial: Partial<MapState>) => void
+  updateMapState: (_partial: Partial<MapState>) => void
   shareableUrl: string
   isValidUrl: boolean
   resetToDefault: () => void
@@ -172,7 +172,7 @@ interface ComparisonMapProps {
 const ComparisonMap: React.FC<ComparisonMapProps> = ({
   mapState,
   updateMapState,
-  shareableUrl,
+  shareableUrl: _shareableUrl,
   isValidUrl,
   resetToDefault,
 }) => {
@@ -188,7 +188,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
   }, [])
 
   const onEachFeature = (feature: Feature, layer: Layer) => {
-    if (feature.properties && feature.properties.name) {
+    if (feature.properties?.name) {
       // Create tooltip content
       const tooltipContent = `
         <div class="font-semibold">${feature.properties.name}</div>
@@ -358,7 +358,10 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
   }
 
   // Convert GeoJSON data to simulation format
-  const convertToRouteSegments = (data: any): RouteSegment[] => {
+  const convertToRouteSegments = (
+    data: any,
+    routeType: 'bus' | 'rail' = 'bus',
+  ): RouteSegment[] => {
     if (!data || !data.features) return []
 
     return data.features.map((feature: any, index: number) => ({
@@ -371,7 +374,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
         }),
       ),
       color: feature.properties?.color,
-      type: 'bus' as const,
+      type: routeType,
     }))
   }
 
@@ -379,7 +382,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
   const generateTransitStops = (routes: RouteSegment[]): TransitStop[] => {
     const stops: TransitStop[] = []
 
-    routes.forEach((route, routeIndex) => {
+    routes.forEach((route, _routeIndex) => {
       // Add stops at the beginning, middle, and end of each route
       const coords = route.coordinates
       const stopPositions = [
@@ -395,7 +398,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
             name: `${route.name} Stop ${stopIndex + 1}`,
             location: coords[pos],
             routes: [route.name],
-            type: 'bus',
+            type: route.type === 'rail' ? 'rail' : 'bus',
           })
         }
       })
@@ -413,7 +416,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
       // Convert current routes to simulation format
       const currentRoutes = [
         ...convertToRouteSegments(busRoutesData),
-        ...convertToRouteSegments(hblrData),
+        ...convertToRouteSegments(hblrData, 'rail'),
       ]
 
       // Convert proposed routes (current + new routes)
@@ -453,9 +456,9 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
   }
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-screen w-full">
       {/* Maps Section */}
-      <div className="flex-1 flex flex-col h-full">
+      <div className="flex-1 flex flex-col min-h-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 p-4">
           {/* Current State Map */}
           <div className="flex flex-col h-full rounded-lg overflow-hidden">
@@ -561,7 +564,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
       </div>
 
       {/* Simulation Panel - Fixed height with internal scrolling */}
-      <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full max-h-screen">
+      <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full overflow-hidden max-h-screen">
         <div className="flex border-b border-gray-300 flex-shrink-0">
           <button
             onClick={() => setShowSimulation(false)}
@@ -598,8 +601,11 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
                 <div>
                   <h4 className="font-medium mb-2">Added Routes:</h4>
                   <ul className="text-sm space-y-1">
-                    {mapState.routes.features.map((_, index) => (
-                      <li key={index} className="text-green-600">
+                    {mapState.routes.features.map((feature, index) => (
+                      <li
+                        key={`route-${feature.geometry?.coordinates?.[0]?.[0]}-${feature.geometry?.coordinates?.[0]?.[1]}-${index}`}
+                        className="text-green-600"
+                      >
                         • New Route {index + 1}
                       </li>
                     ))}

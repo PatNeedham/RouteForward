@@ -3,9 +3,6 @@
  * This test ensures that maps operate independently when isController prop is used correctly.
  */
 
-import React from 'react'
-import { render } from '@testing-library/react'
-
 // Mock the MapViewportSync behavior
 const mockSetView = jest.fn()
 const mockGetCenter = jest.fn(() => ({ lat: 40.7281, lng: -74.0775 }))
