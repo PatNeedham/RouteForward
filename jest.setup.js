@@ -31,11 +31,24 @@ jest.mock('react-leaflet', () => ({
       removeControls: jest.fn(),
     },
   }),
-  useMapEvents: (events) => ({
-    getCenter: () => ({ lat: 40.7281, lng: -74.0775 }),
-    getZoom: () => 13,
-    setView: jest.fn(),
-  }),
+  useMapEvents: (events) => {
+    const map = {
+      getCenter: () => ({ lat: 40.7281, lng: -74.0775 }),
+      getZoom: () => 13,
+      setView: jest.fn(),
+      on: jest.fn(),
+      off: jest.fn(),
+    }
+    // Simulate calling the events passed to useMapEvents
+    if (events) {
+      Object.keys(events).forEach((eventName) => {
+        if (typeof events[eventName] === 'function') {
+          // Don't actually call the events, just make them available
+        }
+      })
+    }
+    return map
+  },
 }))
 
 // Mock geoman

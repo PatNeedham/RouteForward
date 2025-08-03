@@ -14,7 +14,7 @@ export interface UseUrlStateOptions {
 
 export interface UseUrlStateReturn {
   mapState: MapState
-  updateMapState: (partial: Partial<MapState>) => void
+  updateMapState: (_partial: Partial<MapState>) => void
   shareableUrl: string
   isValidUrl: boolean
   resetToDefault: () => void
@@ -129,7 +129,7 @@ export const useUrlState = (
 
   // Handle browser back/forward navigation
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
+    const handlePopState = (_event: PopStateEvent) => {
       // The URL has already changed, so re-decode from current URL
       const currentParams = new URLSearchParams(window.location.search)
       try {
