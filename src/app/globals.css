@@ -44,3 +44,47 @@ body {
 .leaflet-tooltip {
   z-index: 1000 !important;
 }
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Improve touch targets for mobile */
+  .leaflet-control-zoom a {
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 30px !important;
+    font-size: 18px !important;
+  }
+  
+  /* Improve drawing control touch targets */
+  .leaflet-pm-toolbar .leaflet-pm-icon {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  
+  /* Better map control positioning on mobile */
+  .leaflet-control-container .leaflet-top.leaflet-right {
+    top: 10px;
+    right: 10px;
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="range"] {
+    font-size: 16px;
+  }
+}
+
+/* Touch-friendly improvements */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Improve map loading on mobile */
+.leaflet-container {
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .leaflet-container {
+    font-size: 12px;
+  }
+}

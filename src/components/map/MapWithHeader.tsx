@@ -20,15 +20,16 @@ export default function MapWithHeader({ city }: MapWithHeaderProps) {
 
   return (
     <>
-      <header className="flex items-center justify-between p-4 bg-gray-900 shadow-md z-10">
+      <header className="flex flex-col sm:flex-row items-center justify-between p-4 bg-gray-900 shadow-md z-10 gap-2">
         <Link
           href="/"
-          className={`flex items-center ${semanticColors.link.primary.color} ${semanticColors.link.primary.hover}`}
+          className={`flex items-center ${semanticColors.link.primary.color} ${semanticColors.link.primary.hover} text-sm sm:text-base`}
         >
-          <ChevronLeft className="h-6 w-6" />
-          Back to Home
+          <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+          <span className="hidden sm:inline">Back to Home</span>
+          <span className="sm:hidden">Back</span>
         </Link>
-        <h1 className="text-2xl font-bold text-center flex-grow capitalize">
+        <h1 className="text-lg sm:text-2xl font-bold text-center capitalize order-first sm:order-none flex-grow">
           {city.replace('-', ' ')} Transit Simulator
         </h1>
         <ShareButton shareableUrl={shareableUrl} />

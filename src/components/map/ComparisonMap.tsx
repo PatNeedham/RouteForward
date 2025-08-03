@@ -456,16 +456,16 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
   }
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex flex-col lg:flex-row h-screen w-full">
       {/* Maps Section */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 flex-1 p-2 sm:p-4">
           {/* Current State Map */}
           <div className="flex flex-col h-full rounded-lg overflow-hidden">
-            <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
+            <h2 className="text-center text-lg sm:text-xl font-bold mb-2 flex-shrink-0">
               Current State
             </h2>
-            <div className="flex-grow relative">
+            <div className="flex-grow relative min-h-64 sm:min-h-80">
               <MapContainer
                 center={mapState.viewport.center}
                 zoom={mapState.viewport.zoom}
@@ -506,10 +506,10 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
 
           {/* Enhanced Transit Map */}
           <div className="flex flex-col h-full rounded-lg overflow-hidden">
-            <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
+            <h2 className="text-center text-lg sm:text-xl font-bold mb-2 flex-shrink-0">
               Enhanced Transit
             </h2>
-            <div className="flex-grow relative">
+            <div className="flex-grow relative min-h-64 sm:min-h-80">
               <MapContainer
                 center={mapState.viewport.center}
                 zoom={mapState.viewport.zoom}
@@ -555,7 +555,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
         </div>
 
         {/* TimeSlider - positioned relative to maps section, not absolute */}
-        <div className="flex-shrink-0 px-4 pb-4">
+        <div className="flex-shrink-0 px-2 sm:px-4 pb-2 sm:pb-4">
           <TimeSlider
             value={mapState.simulation.time}
             onChange={handleTimeChange}
@@ -563,12 +563,12 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
         </div>
       </div>
 
-      {/* Simulation Panel - Fixed height with internal scrolling */}
-      <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full overflow-hidden max-h-screen">
+      {/* Simulation Panel - Responsive layout */}
+      <div className="w-full lg:w-96 flex flex-col bg-gray-100 border-t lg:border-t-0 lg:border-l border-gray-300 h-auto lg:h-full overflow-hidden max-h-screen">
         <div className="flex border-b border-gray-300 flex-shrink-0">
           <button
             onClick={() => setShowSimulation(false)}
-            className={`flex-1 px-4 py-2 text-sm font-medium ${
+            className={`flex-1 px-3 sm:px-4 py-2 text-sm font-medium ${
               !showSimulation
                 ? 'bg-white text-gray-900 border-b-2 border-blue-500'
                 : 'bg-gray-100 text-gray-600 hover:text-gray-800'
@@ -578,7 +578,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
           </button>
           <button
             onClick={() => setShowSimulation(true)}
-            className={`flex-1 px-4 py-2 text-sm font-medium ${
+            className={`flex-1 px-3 sm:px-4 py-2 text-sm font-medium ${
               showSimulation
                 ? 'bg-white text-gray-900 border-b-2 border-blue-500'
                 : 'bg-gray-100 text-gray-600 hover:text-gray-800'
@@ -588,7 +588,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-0">
           {!showSimulation ? (
             <div className="text-gray-600">
               <h3 className="text-lg font-semibold mb-3">Draw New Routes</h3>

@@ -153,8 +153,9 @@ describe('ComparisonMap Layout Constraints', () => {
     const simulationTab = screen.getByRole('button', { name: /simulation/i })
     fireEvent.click(simulationTab)
 
-    // Find the right panel container
-    const rightPanel = simulationTab.closest('.w-96')
+    // Find the right panel container by looking for responsive width classes
+    const rightPanel = simulationTab.closest('.w-full, .lg\\:w-96') || 
+                      simulationTab.closest('[class*="w-full"][class*="lg:w-96"]')
     expect(rightPanel).toBeInTheDocument()
 
     if (rightPanel) {
