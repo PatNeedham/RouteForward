@@ -1,18 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   MapContainer,
   TileLayer,
   GeoJSON,
   FeatureGroup,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
 import L, { Layer, PathOptions, StyleFunction } from 'leaflet'
-import pako from 'pako'
 import {
   Feature,
   FeatureCollection,
@@ -36,6 +35,10 @@ import SimulationResults from '@/components/simulation/SimulationResults'
 import { SimulationEngine } from '@/lib/simulation/SimulationEngine'
 import { RouteSegment, TransitStop, ComparisonResult } from '@/types/simulation'
 
+// Hooks and utilities
+import { MapState } from '@/types/mapState'
+import { semanticColors } from '@/config/colors'
+
 // Leaflet Icon workaround
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import iconUrl from 'leaflet/dist/images/marker-icon.png'
@@ -55,11 +58,7 @@ type StreetNetworkProperties = {
 
 type StreetFeature = Feature<LineString, StreetNetworkProperties>
 
-const trafficColorMapping: { [key: string]: string } = {
-  heavy: '#dc2626', // red-600
-  medium: '#f59e0b', // amber-500
-  light: '#facc15', // yellow-400
-}
+const trafficColorMapping: { [key: string]: string } = semanticColors.traffic
 
 const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
   const map = useMap()
@@ -114,59 +113,79 @@ const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
   return null
 }
 
-const ComparisonMap: React.FC = () => {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-
-  const [simTime, setSimTime] = useState('08:00')
-  const [newRoutes, setNewRoutes] = useState<FeatureCollection<LineString>>({
-    type: 'FeatureCollection',
-    features: [],
+const MapViewportSync = ({
+  onViewportChange,
+  currentViewport,
+  isController = false,
+}: {
+  onViewportChange: (center: [number, number], zoom: number) => void
+  currentViewport: { center: [number, number]; zoom: number }
+  isController?: boolean
+}) => {
+  const map = useMapEvents({
+    moveend: () => {
+      if (isController) {
+        const center = map.getCenter()
+        const zoom = map.getZoom()
+        onViewportChange([center.lat, center.lng], zoom)
+      }
+    },
+    zoomend: () => {
+      if (isController) {
+        const center = map.getCenter()
+        const zoom = map.getZoom()
+        onViewportChange([center.lat, center.lng], zoom)
+      }
+    },
   })
+
+  // Update map view when viewport state changes (e.g., from URL)
+  // Only sync viewport from URL state if this is the controller map
+  useEffect(() => {
+    if (!isController) return
+
+    const mapCenter = map.getCenter()
+    const mapZoom = map.getZoom()
+    const [stateLat, stateLng] = currentViewport.center
+
+    // Only update if there's a significant difference to avoid infinite loops
+    const centerDiff =
+      Math.abs(mapCenter.lat - stateLat) + Math.abs(mapCenter.lng - stateLng)
+    const zoomDiff = Math.abs(mapZoom - currentViewport.zoom)
+
+    if (centerDiff > 0.001 || zoomDiff > 0.1) {
+      map.setView(currentViewport.center, currentViewport.zoom)
+    }
+  }, [map, currentViewport, isController])
+
+  return null
+}
+
+interface ComparisonMapProps {
+  mapState: MapState
+  updateMapState: (partial: Partial<MapState>) => void
+  shareableUrl: string
+  isValidUrl: boolean
+  resetToDefault: () => void
+}
+
+const ComparisonMap: React.FC<ComparisonMapProps> = ({
+  mapState,
+  updateMapState,
+  shareableUrl,
+  isValidUrl,
+  resetToDefault,
+}) => {
+  // Local state for tracking initialization
+  const [isInitialized, setIsInitialized] = useState(false)
   const [simulationResult, setSimulationResult] =
     useState<ComparisonResult | null>(null)
   const [isSimulating, setIsSimulating] = useState(false)
   const [showSimulation, setShowSimulation] = useState(false)
 
-  // Decode routes from URL on initial load
   useEffect(() => {
-    const routesParam = searchParams.get('routes')
-    if (routesParam) {
-      try {
-        const decoded = atob(routesParam)
-        // Convert binary string to Uint8Array
-        const charData = decoded.split('').map((x) => x.charCodeAt(0))
-        const binData = new Uint8Array(charData)
-        const decompressed = pako.inflate(binData, { to: 'string' })
-        setNewRoutes(JSON.parse(decompressed))
-      } catch (error) {
-        console.error('Failed to decode routes from URL:', error)
-      }
-    }
-  }, [searchParams])
-
-  // Update URL when routes change
-  const updateUrlWithRoutes = useCallback(
-    (routes: FeatureCollection<LineString>) => {
-      if (routes.features.length > 0) {
-        const jsonString = JSON.stringify(routes)
-        const compressed = pako.deflate(jsonString)
-        // Convert Uint8Array to binary string for btoa
-        const binaryString = String.fromCharCode.apply(
-          null,
-          Array.from(compressed),
-        )
-        const encoded = btoa(binaryString)
-        const params = new URLSearchParams(searchParams.toString())
-        params.set('routes', encoded)
-        router.replace(`${pathname}?${params.toString()}`)
-      }
-    },
-    [router, pathname, searchParams],
-  )
-
-  const position: [number, number] = [40.7282, -74.0776]
+    setIsInitialized(true)
+  }, [])
 
   const onEachFeature = (feature: Feature, layer: Layer) => {
     if (feature.properties && feature.properties.name) {
@@ -179,7 +198,7 @@ const ComparisonMap: React.FC = () => {
     const times = Object.keys(feature.properties.traffic).sort()
     let applicableTime = times[0]
     for (const time of times) {
-      if (simTime >= time) {
+      if (mapState.simulation.time >= time) {
         applicableTime = time
       } else {
         break
@@ -202,19 +221,84 @@ const ComparisonMap: React.FC = () => {
     return {}
   }
 
-  const hblrStyle: PathOptions = { color: '#00AEEF', weight: 3, opacity: 0.8 }
-  const newRouteStyle: PathOptions = { color: '#32CD32', weight: 5, opacity: 1 }
+  const hblrStyle: PathOptions = {
+    color: semanticColors.routes.hblr,
+    weight: 3,
+    opacity: 0.8,
+  }
+  const newRouteStyle: PathOptions = {
+    color: semanticColors.routes.newRoute,
+    weight: 5,
+    opacity: 1,
+  }
 
-  const _onCreate = (e: any) => {
-    if (e.layer && e.layer instanceof L.Polyline) {
-      const geojson = e.layer.toGeoJSON() as Feature<LineString>
-      const updatedRoutes: FeatureCollection<LineString> = {
-        ...newRoutes,
-        features: [...newRoutes.features, geojson],
+  const handleRouteCreate = useCallback(
+    (e: any) => {
+      if (e.layer && e.layer instanceof L.Polyline) {
+        const geojson = e.layer.toGeoJSON() as Feature<LineString>
+        const updatedRoutes: FeatureCollection<LineString> = {
+          ...mapState.routes,
+          features: [...mapState.routes.features, geojson],
+        }
+        updateMapState({ routes: updatedRoutes })
       }
-      setNewRoutes(updatedRoutes)
-      updateUrlWithRoutes(updatedRoutes)
-    }
+    },
+    [mapState.routes, updateMapState],
+  )
+
+  const handleTimeChange = useCallback(
+    (newTime: string) => {
+      updateMapState({
+        simulation: { ...mapState.simulation, time: newTime },
+      })
+    },
+    [mapState.simulation, updateMapState],
+  )
+
+  const handleViewportChange = useCallback(
+    (center: [number, number], zoom: number) => {
+      // Only update state if we're not in the initial loading phase
+      // and the values have actually changed
+      if (isInitialized) {
+        const currentCenter = mapState.viewport.center
+        const currentZoom = mapState.viewport.zoom
+
+        // Check if the viewport has actually changed to avoid unnecessary updates
+        const centerDiff =
+          Math.abs(currentCenter[0] - center[0]) +
+          Math.abs(currentCenter[1] - center[1])
+        const zoomDiff = Math.abs(currentZoom - zoom)
+
+        if (centerDiff > 0.001 || zoomDiff > 0.1) {
+          updateMapState({
+            viewport: { center, zoom },
+          })
+        }
+      }
+    },
+    [updateMapState, isInitialized, mapState.viewport],
+  )
+
+  // Handle invalid URL state
+  if (!isValidUrl) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <div className="text-center p-8 bg-gray-800 rounded-lg">
+          <h2 className="text-xl font-bold mb-4 text-red-400">
+            Invalid URL State
+          </h2>
+          <p className="text-gray-300 mb-4">
+            The shared URL contains invalid or corrupted data.
+          </p>
+          <button
+            onClick={resetToDefault}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Reset to Default
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // Convert GeoJSON data to simulation format
@@ -279,14 +363,14 @@ const ComparisonMap: React.FC = () => {
       // Convert proposed routes (current + new routes)
       const proposedRoutes = [
         ...currentRoutes,
-        ...convertToRouteSegments(newRoutes),
+        ...convertToRouteSegments(mapState.routes),
       ]
 
       // Generate stops
       const currentStops = generateTransitStops(currentRoutes)
       const proposedStops = [
         ...currentStops,
-        ...generateTransitStops(convertToRouteSegments(newRoutes)),
+        ...generateTransitStops(convertToRouteSegments(mapState.routes)),
       ]
 
       // Create simulation engine
@@ -325,29 +409,38 @@ const ComparisonMap: React.FC = () => {
               </h2>
               <div className="flex-grow relative">
                 <MapContainer
-                  center={position}
-                  zoom={13}
+                  center={mapState.viewport.center}
+                  zoom={mapState.viewport.zoom}
                   style={{ height: '100%', width: '100%' }}
                 >
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                   />
-                  <GeoJSON
-                    key={`current-${simTime}`}
-                    data={streetNetworkData as GeoJSONObject}
-                    style={streetNetworkStyle}
-                    onEachFeature={onEachFeature}
-                  />
-                  <GeoJSON
-                    data={hblrData as GeoJSONObject}
-                    style={hblrStyle}
-                    onEachFeature={onEachFeature}
-                  />
+                  {mapState.layers?.streetNetwork && (
+                    <GeoJSON
+                      key={`current-${mapState.simulation.time}`}
+                      data={streetNetworkData as GeoJSONObject}
+                      style={streetNetworkStyle}
+                      onEachFeature={onEachFeature}
+                    />
+                  )}
+                  {mapState.layers?.hblr && (
+                    <GeoJSON
+                      data={hblrData as GeoJSONObject}
+                      style={hblrStyle}
+                      onEachFeature={onEachFeature}
+                    />
+                  )}
                   <GeoJSON
                     data={busRoutesData as GeoJSONObject}
                     style={{ color: '#4682B4', weight: 3, opacity: 0.8 }}
                     onEachFeature={onEachFeature}
+                  />
+                  <MapViewportSync
+                    onViewportChange={handleViewportChange}
+                    currentViewport={mapState.viewport}
+                    isController={true}
                   />
                 </MapContainer>
               </div>
@@ -360,8 +453,8 @@ const ComparisonMap: React.FC = () => {
               </h2>
               <div className="flex-grow relative">
                 <MapContainer
-                  center={position}
-                  zoom={13}
+                  center={mapState.viewport.center}
+                  zoom={mapState.viewport.zoom}
                   style={{ height: '100%', width: '100%' }}
                 >
                   <FeatureGroup>
@@ -371,29 +464,41 @@ const ComparisonMap: React.FC = () => {
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                   />
-                  <GeoJSON
-                    key={`enhanced-${simTime}`}
-                    data={streetNetworkData as GeoJSONObject}
-                    style={streetNetworkStyle}
-                    onEachFeature={onEachFeature}
-                  />
-                  <GeoJSON
-                    data={hblrData as GeoJSONObject}
-                    style={hblrStyle}
-                    onEachFeature={onEachFeature}
-                  />
+                  {mapState.layers?.streetNetwork && (
+                    <GeoJSON
+                      key={`enhanced-${mapState.simulation.time}`}
+                      data={streetNetworkData as GeoJSONObject}
+                      style={streetNetworkStyle}
+                      onEachFeature={onEachFeature}
+                    />
+                  )}
+                  {mapState.layers?.hblr && (
+                    <GeoJSON
+                      data={hblrData as GeoJSONObject}
+                      style={hblrStyle}
+                      onEachFeature={onEachFeature}
+                    />
+                  )}
                   <GeoJSON
                     data={busRoutesData as GeoJSONObject}
                     style={{ color: '#4682B4', weight: 3, opacity: 0.8 }}
                     onEachFeature={onEachFeature}
                   />
-                  <GeoJSON data={newRoutes} style={newRouteStyle} />
-                  <GeomanControl onCreate={_onCreate} />
+                  <GeoJSON data={mapState.routes} style={newRouteStyle} />
+                  <GeomanControl onCreate={handleRouteCreate} />
+                  <MapViewportSync
+                    onViewportChange={handleViewportChange}
+                    currentViewport={mapState.viewport}
+                    isController={false}
+                  />
                 </MapContainer>
               </div>
             </div>
           </div>
-          <TimeSlider onChange={setSimTime} />
+          <TimeSlider
+            value={mapState.simulation.time}
+            onChange={handleTimeChange}
+          />
         </div>
 
         {/* Simulation Panel */}
@@ -430,11 +535,11 @@ const ComparisonMap: React.FC = () => {
                   transit routes. Click the line tool in the map controls to
                   start drawing.
                 </p>
-                {newRoutes.features.length > 0 && (
+                {mapState.routes.features.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Added Routes:</h4>
                     <ul className="text-sm space-y-1">
-                      {newRoutes.features.map((_, index) => (
+                      {mapState.routes.features.map((_, index) => (
                         <li key={index} className="text-green-600">
                           • New Route {index + 1}
                         </li>

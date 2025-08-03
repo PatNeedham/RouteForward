@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, ChangeEvent } from 'react'
+import { useState, useEffect, ChangeEvent } from 'react'
 
 interface TimeSliderProps {
+  value?: string
   onChange: (time: string) => void
 }
 
@@ -14,8 +15,21 @@ const formatTime = (minutes: number) => {
   return `${hours}:${mins}`
 }
 
-const TimeSlider: React.FC<TimeSliderProps> = ({ onChange }) => {
-  const [time, setTime] = useState(480) // Default to 08:00
+const parseTime = (timeString: string): number => {
+  const [hours, minutes] = timeString.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+const TimeSlider: React.FC<TimeSliderProps> = ({
+  value = '08:00',
+  onChange,
+}) => {
+  const [time, setTime] = useState(() => parseTime(value))
+
+  // Update local state when value prop changes
+  useEffect(() => {
+    setTime(parseTime(value))
+  }, [value])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newTime = parseInt(e.target.value, 10)

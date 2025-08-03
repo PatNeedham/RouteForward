@@ -10,7 +10,10 @@
     "format:check": "npx prettier --check .",
     "format": "npx prettier --write .",
     "typecheck": "npx tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.18.3",
@@ -27,7 +30,11 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/d3": "^7.4.3",
+    "@types/jest": "^30.0.0",
     "@types/leaflet": "^1.9.20",
     "@types/leaflet-draw": "^1.0.12",
     "@types/node": "^20",
@@ -39,6 +46,8 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
