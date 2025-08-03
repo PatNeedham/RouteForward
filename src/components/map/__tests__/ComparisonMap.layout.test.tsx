@@ -29,6 +29,27 @@ jest.mock('react-leaflet', () => ({
   FeatureGroup: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="feature-group">{children}</div>
   ),
+  useMap: () => ({
+    getCenter: () => ({ lat: 40.7281, lng: -74.0775 }),
+    getZoom: () => 13,
+    setView: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    pm: {
+      addControls: jest.fn(),
+      removeControls: jest.fn(),
+    },
+  }),
+  useMapEvents: (events: any) => {
+    const map = {
+      getCenter: () => ({ lat: 40.7281, lng: -74.0775 }),
+      getZoom: () => 13,
+      setView: jest.fn(),
+      on: jest.fn(),
+      off: jest.fn(),
+    }
+    return map
+  },
 }))
 
 jest.mock('@/components/map/TimeSlider', () => {

@@ -3,6 +3,20 @@
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 
+// Secure random number generator utility
+function getSecureRandomFloat(): number {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const array = new Uint32Array(1)
+    crypto.getRandomValues(array)
+    return array[0] / (0xffffffff + 1)
+  }
+  // Fallback (should not be used in production)
+  console.warn(
+    'Secure random number generation not available, falling back to Math.random()',
+  )
+  return Math.random()
+}
+
 interface TrafficVisualizationProps {
   width?: number
   height?: number
@@ -54,14 +68,14 @@ const TrafficVisualization: React.FC<TrafficVisualizationProps> = ({
           links.push({
             source: y * numCols + x,
             target: y * numCols + x + 1,
-            fast: Math.random() > 0.9,
+            fast: getSecureRandomFloat() > 0.9,
           })
         }
         if (y < numRows - 1) {
           links.push({
             source: y * numCols + x,
             target: (y + 1) * numCols + x,
-            fast: Math.random() > 0.9,
+            fast: getSecureRandomFloat() > 0.9,
           })
         }
       }
@@ -83,10 +97,10 @@ const TrafficVisualization: React.FC<TrafficVisualizationProps> = ({
       .attr('stroke-width', 1)
 
     const particles: Particle[] = d3.range(200).map(() => {
-      const link = links[Math.floor(Math.random() * links.length)]
+      const link = links[Math.floor(getSecureRandomFloat() * links.length)]
       return {
         link,
-        position: Math.random(),
+        position: getSecureRandomFloat(),
       }
     })
 
@@ -105,7 +119,7 @@ const TrafficVisualization: React.FC<TrafficVisualizationProps> = ({
         d.position += d.link.fast ? 0.01 : 0.003
         if (d.position > 1) {
           d.position = 0
-          d.link = links[Math.floor(Math.random() * links.length)]
+          d.link = links[Math.floor(getSecureRandomFloat() * links.length)]
         }
 
         const sourceNode = nodes[d.link.source]

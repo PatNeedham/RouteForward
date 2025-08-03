@@ -11,6 +11,24 @@ import {
   TimeWindow,
 } from '@/types/simulation'
 
+// Secure random number generator utility
+function getSecureRandomFloat(): number {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const array = new Uint32Array(1)
+    crypto.getRandomValues(array)
+    return array[0] / (0xffffffff + 1)
+  } else if (typeof require !== 'undefined') {
+    // Node.js environment
+    const crypto = require('crypto')
+    return crypto.randomBytes(4).readUInt32BE(0) / (0xffffffff + 1)
+  }
+  // Fallback (should not be used in production)
+  console.warn(
+    'Secure random number generation not available, falling back to Math.random()',
+  )
+  return Math.random()
+}
+
 export class SimulationEngine {
   private config: SimulationConfig
   private routes: RouteSegment[]
@@ -144,107 +162,53 @@ export class SimulationEngine {
     return totalDistance
   }
 
-  // Find optimal route between two points
-  private findOptimalRoute(
+  // Helper method to create a walking route result
+  private createWalkingRoute(
     origin: Point,
     destination: Point,
-    currentTime: number,
+    duration: number,
+    confidence: number,
   ): TravelTimeResult {
-    const walkingTime = this.calculateWalkingTime(
+    return {
       origin,
       destination,
-      currentTime,
-    )
-
-    // Check if walking is reasonable (< 2km)
-    const walkingDistance = this.calculateDistance(origin, destination)
-    if (walkingDistance < 2000) {
-      return {
-        origin,
-        destination,
-        duration: walkingTime,
-        confidence: 0.9,
-        route: [
-          {
-            id: 'walking',
-            name: 'Walking',
-            coordinates: [origin, destination],
-            type: 'walking',
-          },
-        ],
-        mode: 'walking',
-      }
+      duration,
+      confidence,
+      route: [
+        {
+          id: 'walking',
+          name: 'Walking',
+          coordinates: [origin, destination],
+          type: 'walking',
+        },
+      ],
+      mode: 'walking',
     }
+  }
 
-    // Find best transit option
-    const originStop = this.findNearestStop(origin, 'bus')
-    const destinationStop = this.findNearestStop(destination, 'bus')
-
-    if (!originStop || !destinationStop) {
-      // No transit available, must walk
-      return {
-        origin,
-        destination,
-        duration: walkingTime,
-        confidence: 0.8,
-        route: [
-          {
-            id: 'walking',
-            name: 'Walking',
-            coordinates: [origin, destination],
-            type: 'walking',
-          },
-        ],
-        mode: 'walking',
-      }
-    }
-
-    // Find routes connecting these stops
+  // Helper method to find a direct transit route between stops
+  private findDirectTransitRoute(
+    originStop: TransitStop,
+    destinationStop: TransitStop,
+  ): RouteSegment | null {
     const commonRoutes = originStop.routes.filter((route) =>
       destinationStop.routes.includes(route),
     )
+    if (commonRoutes.length === 0) return null
 
-    if (commonRoutes.length === 0) {
-      // No direct route, use walking
-      return {
-        origin,
-        destination,
-        duration: walkingTime,
-        confidence: 0.7,
-        route: [
-          {
-            id: 'walking',
-            name: 'Walking',
-            coordinates: [origin, destination],
-            type: 'walking',
-          },
-        ],
-        mode: 'walking',
-      }
-    }
-
-    // Use the first available route (could be optimized)
     const routeId = commonRoutes[0]
-    const route = this.routes.find((r) => r.name === routeId)
+    return this.routes.find((r) => r.name === routeId) || null
+  }
 
-    if (!route) {
-      return {
-        origin,
-        destination,
-        duration: walkingTime,
-        confidence: 0.6,
-        route: [
-          {
-            id: 'walking',
-            name: 'Walking',
-            coordinates: [origin, destination],
-            type: 'walking',
-          },
-        ],
-        mode: 'walking',
-      }
-    }
-
+  // Helper method to calculate transit route details
+  private calculateTransitRoute(
+    origin: Point,
+    destination: Point,
+    route: RouteSegment,
+    originStop: TransitStop,
+    destinationStop: TransitStop,
+    currentTime: number,
+  ): { duration: number; route: RouteSegment[] } {
     const walkToStop = this.calculateWalkingTime(
       origin,
       originStop.location,
@@ -262,48 +226,86 @@ export class SimulationEngine {
       currentTime,
     )
 
-    const totalTransitTime = walkToStop + busTime + walkFromStop
+    return {
+      duration: walkToStop + busTime + walkFromStop,
+      route: [
+        {
+          id: 'walk-to-stop',
+          name: 'Walk to stop',
+          coordinates: [origin, originStop.location],
+          type: 'walking',
+        },
+        route,
+        {
+          id: 'walk-from-stop',
+          name: 'Walk from stop',
+          coordinates: [destinationStop.location, destination],
+          type: 'walking',
+        },
+      ],
+    }
+  }
 
-    // Choose best option
-    if (totalTransitTime < walkingTime) {
+  // Find optimal route between two points
+  private findOptimalRoute(
+    origin: Point,
+    destination: Point,
+    currentTime: number,
+  ): TravelTimeResult {
+    const walkingTime = this.calculateWalkingTime(
+      origin,
+      destination,
+      currentTime,
+    )
+
+    // Check if walking is reasonable (< 2km)
+    const walkingDistance = this.calculateDistance(origin, destination)
+    if (walkingDistance < 2000) {
+      return this.createWalkingRoute(origin, destination, walkingTime, 0.9)
+    }
+
+    // Find best transit option
+    const originStop = this.findNearestStop(origin, 'bus')
+    const destinationStop = this.findNearestStop(destination, 'bus')
+
+    if (!originStop || !destinationStop) {
+      // No transit available, must walk
+      return this.createWalkingRoute(origin, destination, walkingTime, 0.8)
+    }
+
+    // Find direct transit route between stops
+    const transitRoute = this.findDirectTransitRoute(
+      originStop,
+      destinationStop,
+    )
+
+    if (!transitRoute) {
+      // No direct route, use walking
+      return this.createWalkingRoute(origin, destination, walkingTime, 0.7)
+    }
+
+    // Calculate transit route details
+    const transitDetails = this.calculateTransitRoute(
+      origin,
+      destination,
+      transitRoute,
+      originStop,
+      destinationStop,
+      currentTime,
+    )
+
+    // Choose best option between walking and transit
+    if (transitDetails.duration < walkingTime) {
       return {
         origin,
         destination,
-        duration: totalTransitTime,
+        duration: transitDetails.duration,
         confidence: 0.8,
-        route: [
-          {
-            id: 'walk-to-stop',
-            name: 'Walk to stop',
-            coordinates: [origin, originStop.location],
-            type: 'walking',
-          },
-          route,
-          {
-            id: 'walk-from-stop',
-            name: 'Walk from stop',
-            coordinates: [destinationStop.location, destination],
-            type: 'walking',
-          },
-        ],
+        route: transitDetails.route,
         mode: 'mixed',
       }
     } else {
-      return {
-        origin,
-        destination,
-        duration: walkingTime,
-        confidence: 0.8,
-        route: [
-          {
-            id: 'walking',
-            name: 'Walking',
-            coordinates: [origin, destination],
-            type: 'walking',
-          },
-        ],
-        mode: 'walking',
-      }
+      return this.createWalkingRoute(origin, destination, walkingTime, 0.8)
     }
   }
 
@@ -350,6 +352,31 @@ export class SimulationEngine {
     proposedStops: TransitStop[],
     timeOfDay: number = 480,
   ): Promise<ComparisonResult> {
+    const { currentResult, proposedResult } = await this.runScenarios(
+      originDestinationPairs,
+      proposedRoutes,
+      proposedStops,
+      timeOfDay,
+    )
+
+    const improvements = this.calculateImprovements(
+      currentResult,
+      proposedResult,
+    )
+
+    return {
+      current: currentResult,
+      proposed: proposedResult,
+      improvements,
+    }
+  }
+
+  private async runScenarios(
+    originDestinationPairs: Array<{ origin: Point; destination: Point }>,
+    proposedRoutes: RouteSegment[],
+    proposedStops: TransitStop[],
+    timeOfDay: number,
+  ) {
     // Run current scenario
     const currentResult = await this.simulate(originDestinationPairs, timeOfDay)
 
@@ -365,18 +392,46 @@ export class SimulationEngine {
     )
     proposedResult.scenario = 'proposed'
 
-    // Calculate improvements
-    const currentAverage =
-      currentResult.travelTimes.reduce((sum, t) => sum + t.duration, 0) /
-      currentResult.travelTimes.length
-    const proposedAverage =
-      proposedResult.travelTimes.reduce((sum, t) => sum + t.duration, 0) /
-      proposedResult.travelTimes.length
+    return { currentResult, proposedResult }
+  }
+
+  private calculateImprovements(
+    currentResult: SimulationResult,
+    proposedResult: SimulationResult,
+  ) {
+    const currentAverage = this.calculateAverageTravelTime(
+      currentResult.travelTimes,
+    )
+    const proposedAverage = this.calculateAverageTravelTime(
+      proposedResult.travelTimes,
+    )
 
     const averageTimeSaved = currentAverage - proposedAverage
     const percentImprovement = (averageTimeSaved / currentAverage) * 100
 
-    const affectedRoutes = [
+    const affectedRoutes = this.extractAffectedRoutes(
+      currentResult,
+      proposedResult,
+    )
+
+    return {
+      averageTimeSaved,
+      percentImprovement,
+      affectedRoutes,
+    }
+  }
+
+  private calculateAverageTravelTime(travelTimes: TravelTimeResult[]): number {
+    return (
+      travelTimes.reduce((sum, t) => sum + t.duration, 0) / travelTimes.length
+    )
+  }
+
+  private extractAffectedRoutes(
+    currentResult: SimulationResult,
+    proposedResult: SimulationResult,
+  ): string[] {
+    return [
       ...new Set([
         ...currentResult.travelTimes.flatMap((t) => t.route.map((r) => r.name)),
         ...proposedResult.travelTimes.flatMap((t) =>
@@ -384,16 +439,6 @@ export class SimulationEngine {
         ),
       ]),
     ].filter((name) => name !== 'Walking')
-
-    return {
-      current: currentResult,
-      proposed: proposedResult,
-      improvements: {
-        averageTimeSaved,
-        percentImprovement,
-        affectedRoutes,
-      },
-    }
   }
 
   // Generate sample origin-destination pairs for testing
@@ -412,13 +457,15 @@ export class SimulationEngine {
 
     for (let i = 0; i < count; i++) {
       const origin: Point = {
-        lat: bounds.south + Math.random() * (bounds.north - bounds.south),
-        lng: bounds.west + Math.random() * (bounds.east - bounds.west),
+        lat:
+          bounds.south + getSecureRandomFloat() * (bounds.north - bounds.south),
+        lng: bounds.west + getSecureRandomFloat() * (bounds.east - bounds.west),
       }
 
       const destination: Point = {
-        lat: bounds.south + Math.random() * (bounds.north - bounds.south),
-        lng: bounds.west + Math.random() * (bounds.east - bounds.west),
+        lat:
+          bounds.south + getSecureRandomFloat() * (bounds.north - bounds.south),
+        lng: bounds.west + getSecureRandomFloat() * (bounds.east - bounds.west),
       }
 
       trips.push({ origin, destination })
