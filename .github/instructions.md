@@ -61,6 +61,17 @@ When code quality tools (CodeRabbit, SonarQube, etc.) leave comments on pull req
 - **Solution**: Apply single responsibility principle, extract methods
 - **Example**: Split large functions into smaller, focused helper functions
 
+**4. Security Hotspots (Math.random() usage)**
+
+- **Pattern**: SonarQube flagging `Math.random()` as security-sensitive
+- **Assessment**: Determine if the usage is security-sensitive or for visualization/simulation
+- **Non-Security Usage Solution**: Add explicit comments and suppressions:
+  ```typescript
+  // NOSONAR - Math.random() is safe for non-security-sensitive [purpose]
+  return Math.random() // nosemgrep: javascript.lang.security.audit.math-random-detected
+  ```
+- **Security-Sensitive Solution**: Use cryptographic random generation with proper fallbacks
+
 ## Technology Stack Guidelines
 
 ### Next.js 15+ Best Practices
