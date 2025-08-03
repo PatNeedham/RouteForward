@@ -189,7 +189,53 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
 
   const onEachFeature = (feature: Feature, layer: Layer) => {
     if (feature.properties && feature.properties.name) {
-      layer.bindPopup(feature.properties.name)
+      // Create tooltip content
+      const tooltipContent = `
+        <div class="font-semibold">${feature.properties.name}</div>
+        ${feature.properties.description ? `<div class="text-sm text-gray-600">${feature.properties.description}</div>` : ''}
+      `
+
+      // Bind tooltip that shows on hover
+      layer.bindTooltip(tooltipContent, {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -10],
+        className: 'custom-tooltip',
+      })
+
+      // Optional: Still bind popup for click (for detailed info)
+      layer.bindPopup(tooltipContent)
+
+      // Add hover effects
+      layer.on({
+        mouseover: function (e) {
+          const target = e.target
+          target.setStyle({
+            weight: 6,
+            opacity: 1.0,
+          })
+          target.openTooltip()
+        },
+        mouseout: function (e) {
+          const target = e.target
+          // Reset style based on feature type
+          if (feature.properties?.color) {
+            // Bus route - reset to original style
+            target.setStyle({
+              color: feature.properties.color,
+              weight: 3,
+              opacity: 0.8,
+            })
+          } else {
+            // Other features - use default reset
+            target.setStyle({
+              weight: 3,
+              opacity: 0.8,
+            })
+          }
+          target.closeTooltip()
+        },
+      })
     }
   }
 
@@ -205,6 +251,16 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
       }
     }
     return feature.properties.traffic[applicableTime]
+  }
+
+  const busRouteStyle = (feature: any) => {
+    return {
+      color: feature?.properties?.color || '#4682B4',
+      weight: 4,
+      opacity: 0.8,
+      lineCap: 'round' as const,
+      lineJoin: 'round' as const,
+    }
   }
 
   const streetNetworkStyle: StyleFunction<StreetNetworkProperties> = (
@@ -397,173 +453,175 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
   }
 
   return (
-    <>
-      <div className="flex h-full w-full min-h-0">
-        {/* Maps Section */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 p-4 min-h-0">
-            {/* Current State Map */}
-            <div className="flex flex-col h-full rounded-lg overflow-hidden">
-              <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
-                Current State
-              </h2>
-              <div className="flex-grow relative">
-                <MapContainer
-                  center={mapState.viewport.center}
-                  zoom={mapState.viewport.zoom}
-                  style={{ height: '100%', width: '100%' }}
-                >
-                  <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  />
-                  {mapState.layers?.streetNetwork && (
-                    <GeoJSON
-                      key={`current-${mapState.simulation.time}`}
-                      data={streetNetworkData as GeoJSONObject}
-                      style={streetNetworkStyle}
-                      onEachFeature={onEachFeature}
-                    />
-                  )}
-                  {mapState.layers?.hblr && (
-                    <GeoJSON
-                      data={hblrData as GeoJSONObject}
-                      style={hblrStyle}
-                      onEachFeature={onEachFeature}
-                    />
-                  )}
+    <div className="flex h-full w-full">
+      {/* Maps Section */}
+      <div className="flex-1 flex flex-col h-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 p-4">
+          {/* Current State Map */}
+          <div className="flex flex-col h-full rounded-lg overflow-hidden">
+            <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
+              Current State
+            </h2>
+            <div className="flex-grow relative">
+              <MapContainer
+                center={mapState.viewport.center}
+                zoom={mapState.viewport.zoom}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                {mapState.layers?.streetNetwork && (
                   <GeoJSON
-                    data={busRoutesData as GeoJSONObject}
-                    style={{ color: '#4682B4', weight: 3, opacity: 0.8 }}
+                    key={`current-${mapState.simulation.time}`}
+                    data={streetNetworkData as GeoJSONObject}
+                    style={streetNetworkStyle}
                     onEachFeature={onEachFeature}
                   />
-                  <MapViewportSync
-                    onViewportChange={handleViewportChange}
-                    currentViewport={mapState.viewport}
-                    isController={true}
-                  />
-                </MapContainer>
-              </div>
-            </div>
-
-            {/* Enhanced Transit Map */}
-            <div className="flex flex-col h-full rounded-lg overflow-hidden">
-              <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
-                Enhanced Transit
-              </h2>
-              <div className="flex-grow relative">
-                <MapContainer
-                  center={mapState.viewport.center}
-                  zoom={mapState.viewport.zoom}
-                  style={{ height: '100%', width: '100%' }}
-                >
-                  <FeatureGroup>
-                    {/* This is where the drawing controls are added */}
-                  </FeatureGroup>
-                  <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  />
-                  {mapState.layers?.streetNetwork && (
-                    <GeoJSON
-                      key={`enhanced-${mapState.simulation.time}`}
-                      data={streetNetworkData as GeoJSONObject}
-                      style={streetNetworkStyle}
-                      onEachFeature={onEachFeature}
-                    />
-                  )}
-                  {mapState.layers?.hblr && (
-                    <GeoJSON
-                      data={hblrData as GeoJSONObject}
-                      style={hblrStyle}
-                      onEachFeature={onEachFeature}
-                    />
-                  )}
+                )}
+                {mapState.layers?.hblr && (
                   <GeoJSON
-                    data={busRoutesData as GeoJSONObject}
-                    style={{ color: '#4682B4', weight: 3, opacity: 0.8 }}
+                    data={hblrData as GeoJSONObject}
+                    style={hblrStyle}
                     onEachFeature={onEachFeature}
                   />
-                  <GeoJSON data={mapState.routes} style={newRouteStyle} />
-                  <GeomanControl onCreate={handleRouteCreate} />
-                  <MapViewportSync
-                    onViewportChange={handleViewportChange}
-                    currentViewport={mapState.viewport}
-                    isController={false}
-                  />
-                </MapContainer>
-              </div>
+                )}
+                <GeoJSON
+                  data={busRoutesData as GeoJSONObject}
+                  style={busRouteStyle}
+                  onEachFeature={onEachFeature}
+                />
+                <MapViewportSync
+                  onViewportChange={handleViewportChange}
+                  currentViewport={mapState.viewport}
+                  isController={true}
+                />
+              </MapContainer>
             </div>
           </div>
+
+          {/* Enhanced Transit Map */}
+          <div className="flex flex-col h-full rounded-lg overflow-hidden">
+            <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
+              Enhanced Transit
+            </h2>
+            <div className="flex-grow relative">
+              <MapContainer
+                center={mapState.viewport.center}
+                zoom={mapState.viewport.zoom}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <FeatureGroup>
+                  {/* This is where the drawing controls are added */}
+                </FeatureGroup>
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                {mapState.layers?.streetNetwork && (
+                  <GeoJSON
+                    key={`enhanced-${mapState.simulation.time}`}
+                    data={streetNetworkData as GeoJSONObject}
+                    style={streetNetworkStyle}
+                    onEachFeature={onEachFeature}
+                  />
+                )}
+                {mapState.layers?.hblr && (
+                  <GeoJSON
+                    data={hblrData as GeoJSONObject}
+                    style={hblrStyle}
+                    onEachFeature={onEachFeature}
+                  />
+                )}
+                <GeoJSON
+                  data={busRoutesData as GeoJSONObject}
+                  style={busRouteStyle}
+                  onEachFeature={onEachFeature}
+                />
+                <GeoJSON data={mapState.routes} style={newRouteStyle} />
+                <GeomanControl onCreate={handleRouteCreate} />
+                <MapViewportSync
+                  onViewportChange={handleViewportChange}
+                  currentViewport={mapState.viewport}
+                  isController={false}
+                />
+              </MapContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* TimeSlider - positioned relative to maps section, not absolute */}
+        <div className="flex-shrink-0 px-4 pb-4">
           <TimeSlider
             value={mapState.simulation.time}
             onChange={handleTimeChange}
           />
         </div>
+      </div>
 
-        {/* Simulation Panel */}
-        <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full">
-          <div className="flex border-b border-gray-300 flex-shrink-0">
-            <button
-              onClick={() => setShowSimulation(false)}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${
-                !showSimulation
-                  ? 'bg-white text-gray-900 border-b-2 border-blue-500'
-                  : 'bg-gray-100 text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Draw Routes
-            </button>
-            <button
-              onClick={() => setShowSimulation(true)}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${
-                showSimulation
-                  ? 'bg-white text-gray-900 border-b-2 border-blue-500'
-                  : 'bg-gray-100 text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Simulation
-            </button>
-          </div>
+      {/* Simulation Panel - Fixed height with internal scrolling */}
+      <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full max-h-screen">
+        <div className="flex border-b border-gray-300 flex-shrink-0">
+          <button
+            onClick={() => setShowSimulation(false)}
+            className={`flex-1 px-4 py-2 text-sm font-medium ${
+              !showSimulation
+                ? 'bg-white text-gray-900 border-b-2 border-blue-500'
+                : 'bg-gray-100 text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Draw Routes
+          </button>
+          <button
+            onClick={() => setShowSimulation(true)}
+            className={`flex-1 px-4 py-2 text-sm font-medium ${
+              showSimulation
+                ? 'bg-white text-gray-900 border-b-2 border-blue-500'
+                : 'bg-gray-100 text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Simulation
+          </button>
+        </div>
 
-          <div className="flex-1 overflow-y-auto p-4 min-h-0">
-            {!showSimulation ? (
-              <div className="text-gray-600">
-                <h3 className="text-lg font-semibold mb-3">Draw New Routes</h3>
-                <p className="text-sm mb-4">
-                  Use the drawing tools on the Enhanced Transit map to add new
-                  transit routes. Click the line tool in the map controls to
-                  start drawing.
-                </p>
-                {mapState.routes.features.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-2">Added Routes:</h4>
-                    <ul className="text-sm space-y-1">
-                      {mapState.routes.features.map((_, index) => (
-                        <li key={index} className="text-green-600">
-                          • New Route {index + 1}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <SimulationControls
-                  onRunSimulation={handleRunSimulation}
-                  isLoading={isSimulating}
-                />
-                <SimulationResults
-                  result={simulationResult}
-                  isLoading={isSimulating}
-                />
-              </div>
-            )}
-          </div>
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
+          {!showSimulation ? (
+            <div className="text-gray-600">
+              <h3 className="text-lg font-semibold mb-3">Draw New Routes</h3>
+              <p className="text-sm mb-4">
+                Use the drawing tools on the Enhanced Transit map to add new
+                transit routes. Click the line tool in the map controls to start
+                drawing.
+              </p>
+              {mapState.routes.features.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Added Routes:</h4>
+                  <ul className="text-sm space-y-1">
+                    {mapState.routes.features.map((_, index) => (
+                      <li key={index} className="text-green-600">
+                        • New Route {index + 1}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <SimulationControls
+                onRunSimulation={handleRunSimulation}
+                isLoading={isSimulating}
+              />
+              <SimulationResults
+                result={simulationResult}
+                isLoading={isSimulating}
+              />
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
