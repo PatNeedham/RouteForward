@@ -72,7 +72,7 @@ export const encodeMapStateToUrl = (state: MapState): EncodedMapState => {
   }
 
   // Encode simulation time (simple string, no need for base64)
-  if (state.simulation.time !== DEFAULT_MAP_STATE.simulation.time) {
+  if (state.simulation.time) {
     encoded.t = state.simulation.time
   }
 
