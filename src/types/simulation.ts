@@ -26,6 +26,16 @@ export interface PedestrianAgent {
   walkingSpeed: number // meters per minute
   currentPosition: Point
   route?: Point[]
+  // Enhanced properties for agent-based simulation
+  velocity: { x: number; y: number }
+  agentType: 'normal' | 'wheelchair' | 'mobility_aid' | 'elderly' | 'child'
+  maxSpeed: number // meters per minute (3-5 mph = 80-134 m/min)
+  targetStop?: TransitStop
+  pathIndex: number
+  weatherSensitivity: number // 0-1, how much weather affects this agent
+  crowdAvoidanceRadius: number // meters
+  isAtDestination: boolean
+  lastUpdate: number
 }
 
 export interface BusAgent {
@@ -89,4 +99,64 @@ export interface ComparisonResult {
     percentImprovement: number
     affectedRoutes: string[]
   }
+}
+
+// Weather system for pedestrian simulation
+export interface WeatherConditions {
+  temperature: number // Celsius
+  precipitation: number // 0-1 (0 = none, 1 = heavy)
+  windSpeed: number // m/s
+  visibility: number // 0-1 (0 = no visibility, 1 = clear)
+  type: 'clear' | 'rain' | 'snow' | 'fog' | 'wind'
+}
+
+// Sidewalk network for pathfinding
+export interface SidewalkNode {
+  id: string
+  position: Point
+  connections: string[] // IDs of connected nodes
+  width: number // meters
+  accessibility: 'full' | 'limited' | 'none' // wheelchair accessibility
+  crowdCapacity: number // max people per meter
+}
+
+export interface SidewalkNetwork {
+  nodes: SidewalkNode[]
+  obstacles: Obstacle[]
+}
+
+export interface Obstacle {
+  id: string
+  position: Point
+  radius: number // meters
+  type: 'construction' | 'furniture' | 'building' | 'temporary'
+}
+
+// Crowd dynamics
+export interface CrowdMetrics {
+  density: number // people per square meter
+  averageSpeed: number // current average speed in area
+  flowRate: number // people per minute through area
+  congestionLevel: number // 0-1 (0 = free flow, 1 = gridlock)
+}
+
+// Pedestrian simulation configuration
+export interface PedestrianSimConfig {
+  maxAgents: number
+  timeStep: number // simulation step in seconds
+  crowdDynamics: {
+    separationRadius: number // meters
+    alignmentRadius: number
+    cohesionRadius: number
+    maxForce: number
+    avoidanceForce: number
+  }
+  accessibility: {
+    wheelchairSpeedFactor: number // 0-1 multiplier
+    mobilityAidSpeedFactor: number
+    elderlySpeedFactor: number
+    childSpeedFactor: number
+  }
+  weather: WeatherConditions
+  sidewalkNetwork: SidewalkNetwork
 }
