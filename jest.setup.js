@@ -14,10 +14,12 @@ jest.mock('leaflet', () => ({
 
 // Mock react-leaflet components
 jest.mock('react-leaflet', () => ({
-  MapContainer: ({ children }) => React.createElement('div', { 'data-testid': 'map-container' }, children),
+  MapContainer: ({ children }) =>
+    React.createElement('div', { 'data-testid': 'map-container' }, children),
   TileLayer: () => React.createElement('div', { 'data-testid': 'tile-layer' }),
   GeoJSON: () => React.createElement('div', { 'data-testid': 'geojson' }),
-  FeatureGroup: ({ children }) => React.createElement('div', { 'data-testid': 'feature-group' }, children),
+  FeatureGroup: ({ children }) =>
+    React.createElement('div', { 'data-testid': 'feature-group' }, children),
   useMap: () => ({
     getCenter: () => ({ lat: 40.7281, lng: -74.0775 }),
     getZoom: () => 13,

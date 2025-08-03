@@ -10,7 +10,7 @@ on:
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
-    
+
     # Skip coverage for draft PRs to save resources
     if: github.event.pull_request.draft == false || github.event_name == 'push'
 

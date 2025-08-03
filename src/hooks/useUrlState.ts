@@ -37,11 +37,17 @@ export const useUrlState = (
   const updateTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const isInitialLoadRef = useRef(true)
 
-  // Load state from URL on mount
+  // Load state from URL on mount and when search params change
   useEffect(() => {
     try {
       const decodedState = decodeUrlToMapState(searchParams)
-      setMapState(decodedState)
+      setMapState((prevState) => {
+        // Only update if the decoded state is actually different
+        if (JSON.stringify(prevState) !== JSON.stringify(decodedState)) {
+          return decodedState
+        }
+        return prevState
+      })
       isInitialLoadRef.current = false
     } catch (error) {
       console.error('Failed to load state from URL:', error)

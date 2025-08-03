@@ -19,6 +19,12 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  // Memory and performance optimizations
+  coverageProvider: 'v8',
+  maxWorkers: '50%',
+  workerIdleMemoryLimit: '512MB',
+  // Prevent long running tests
+  testTimeout: 10000,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

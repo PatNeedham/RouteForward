@@ -28,24 +28,24 @@ describe('ComparisonMap', () => {
 
   it('renders two map containers', () => {
     render(<ComparisonMap {...mockProps} />)
-    
+
     const mapContainers = screen.getAllByTestId('map-container')
     expect(mapContainers).toHaveLength(2)
   })
 
   it('renders Current State and Enhanced Transit headers', () => {
     render(<ComparisonMap {...mockProps} />)
-    
-    expect(screen.getByText('Current State')).toBeInTheDocument()
-    expect(screen.getByText('Enhanced Transit')).toBeInTheDocument()
+
+    expect(screen.getByText('Current State')).toBeTruthy()
+    expect(screen.getByText('Enhanced Transit')).toBeTruthy()
   })
 
   it('renders TimeSlider component', () => {
     render(<ComparisonMap {...mockProps} />)
-    
+
     // TimeSlider should be rendered (it contains a slider input)
     const slider = screen.getByRole('slider')
-    expect(slider).toBeInTheDocument()
+    expect(slider).toBeTruthy()
   })
 
   it('handles invalid URL state', () => {
@@ -53,11 +53,11 @@ describe('ComparisonMap', () => {
       ...mockProps,
       isValidUrl: false,
     }
-    
+
     render(<ComparisonMap {...invalidProps} />)
-    
-    expect(screen.getByText('Invalid URL State')).toBeInTheDocument()
-    expect(screen.getByText('Reset to Default')).toBeInTheDocument()
+
+    expect(screen.getByText('Invalid URL State')).toBeTruthy()
+    expect(screen.getByText('Reset to Default')).toBeTruthy()
   })
 
   it('does not render maps when URL is invalid', () => {
@@ -65,9 +65,9 @@ describe('ComparisonMap', () => {
       ...mockProps,
       isValidUrl: false,
     }
-    
+
     render(<ComparisonMap {...invalidProps} />)
-    
+
     const mapContainers = screen.queryAllByTestId('map-container')
     expect(mapContainers).toHaveLength(0)
   })
