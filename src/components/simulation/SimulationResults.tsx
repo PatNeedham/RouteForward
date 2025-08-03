@@ -9,7 +9,10 @@ interface SimulationResultsProps {
   isLoading: boolean
 }
 
-export default function SimulationResults({ result, isLoading }: SimulationResultsProps) {
+export default function SimulationResults({
+  result,
+  isLoading,
+}: SimulationResultsProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details'>('overview')
 
   if (isLoading) {
@@ -61,8 +64,12 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
     return null
   }
 
-  const currentAverage = result.current.travelTimes.reduce((sum, t) => sum + t.duration, 0) / result.current.travelTimes.length
-  const proposedAverage = result.proposed.travelTimes.reduce((sum, t) => sum + t.duration, 0) / result.proposed.travelTimes.length
+  const currentAverage =
+    result.current.travelTimes.reduce((sum, t) => sum + t.duration, 0) /
+    result.current.travelTimes.length
+  const proposedAverage =
+    result.proposed.travelTimes.reduce((sum, t) => sum + t.duration, 0) /
+    result.proposed.travelTimes.length
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -104,7 +111,9 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-sm text-blue-600 font-medium">Current Average</div>
+                <div className="text-sm text-blue-600 font-medium">
+                  Current Average
+                </div>
                 <div className="text-2xl font-bold text-blue-900">
                   {formatTime(currentAverage)}
                 </div>
@@ -114,7 +123,9 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
               </div>
 
               <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-sm text-green-600 font-medium">Proposed Average</div>
+                <div className="text-sm text-green-600 font-medium">
+                  Proposed Average
+                </div>
                 <div className="text-2xl font-bold text-green-900">
                   {formatTime(proposedAverage)}
                 </div>
@@ -124,8 +135,12 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-600 font-medium">Improvement</div>
-                <div className={`text-2xl font-bold flex items-center ${getImprovementColor(result.improvements.percentImprovement)}`}>
+                <div className="text-sm text-gray-600 font-medium">
+                  Improvement
+                </div>
+                <div
+                  className={`text-2xl font-bold flex items-center ${getImprovementColor(result.improvements.percentImprovement)}`}
+                >
                   {getImprovementIcon(result.improvements.percentImprovement)}
                   <span className="ml-1">
                     {result.improvements.percentImprovement > 0 ? '+' : ''}
@@ -133,7 +148,8 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
                   </span>
                 </div>
                 <div className="text-xs text-gray-600">
-                  {formatTime(Math.abs(result.improvements.averageTimeSaved))} saved
+                  {formatTime(Math.abs(result.improvements.averageTimeSaved))}{' '}
+                  saved
                 </div>
               </div>
             </div>
@@ -194,8 +210,12 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
                 return (
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="text-sm font-medium">Trip {index + 1}</div>
-                      <div className={`text-sm flex items-center ${getImprovementColor(timeDiff)}`}>
+                      <div className="text-sm font-medium">
+                        Trip {index + 1}
+                      </div>
+                      <div
+                        className={`text-sm flex items-center ${getImprovementColor(timeDiff)}`}
+                      >
                         {getImprovementIcon(timeDiff)}
                         <span className="ml-1">
                           {timeDiff > 0 ? '-' : '+'}
@@ -207,16 +227,23 @@ export default function SimulationResults({ result, isLoading }: SimulationResul
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <div className="text-gray-600">Current</div>
-                        <div className="font-medium">{formatTime(trip.duration)}</div>
+                        <div className="font-medium">
+                          {formatTime(trip.duration)}
+                        </div>
                         <div className="text-xs text-gray-500 capitalize">
-                          via {trip.mode} ({formatConfidence(trip.confidence)} confidence)
+                          via {trip.mode} ({formatConfidence(trip.confidence)}{' '}
+                          confidence)
                         </div>
                       </div>
                       <div>
                         <div className="text-gray-600">Proposed</div>
-                        <div className="font-medium">{formatTime(proposedTrip.duration)}</div>
+                        <div className="font-medium">
+                          {formatTime(proposedTrip.duration)}
+                        </div>
                         <div className="text-xs text-gray-500 capitalize">
-                          via {proposedTrip.mode} ({formatConfidence(proposedTrip.confidence)} confidence)
+                          via {proposedTrip.mode} (
+                          {formatConfidence(proposedTrip.confidence)}{' '}
+                          confidence)
                         </div>
                       </div>
                     </div>

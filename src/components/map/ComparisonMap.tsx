@@ -27,7 +27,9 @@ import busRoutesData from '@/data/jersey-city/bus-routes.json'
 
 // Components
 import TimeSlider from './TimeSlider'
-import SimulationControls, { SimulationControlConfig } from '@/components/simulation/SimulationControls'
+import SimulationControls, {
+  SimulationControlConfig,
+} from '@/components/simulation/SimulationControls'
 import SimulationResults from '@/components/simulation/SimulationResults'
 
 // Simulation Engine
@@ -122,7 +124,8 @@ const ComparisonMap: React.FC = () => {
     type: 'FeatureCollection',
     features: [],
   })
-  const [simulationResult, setSimulationResult] = useState<ComparisonResult | null>(null)
+  const [simulationResult, setSimulationResult] =
+    useState<ComparisonResult | null>(null)
   const [isSimulating, setIsSimulating] = useState(false)
   const [showSimulation, setShowSimulation] = useState(false)
 
@@ -217,28 +220,34 @@ const ComparisonMap: React.FC = () => {
   // Convert GeoJSON data to simulation format
   const convertToRouteSegments = (data: any): RouteSegment[] => {
     if (!data || !data.features) return []
-    
+
     return data.features.map((feature: any, index: number) => ({
       id: `route-${index}`,
       name: feature.properties?.name || `Route ${index + 1}`,
-      coordinates: feature.geometry.coordinates.map(([lng, lat]: [number, number]) => ({
-        lat,
-        lng
-      })),
+      coordinates: feature.geometry.coordinates.map(
+        ([lng, lat]: [number, number]) => ({
+          lat,
+          lng,
+        }),
+      ),
       color: feature.properties?.color,
-      type: 'bus' as const
+      type: 'bus' as const,
     }))
   }
 
   // Generate transit stops from route data
   const generateTransitStops = (routes: RouteSegment[]): TransitStop[] => {
     const stops: TransitStop[] = []
-    
+
     routes.forEach((route, routeIndex) => {
       // Add stops at the beginning, middle, and end of each route
       const coords = route.coordinates
-      const stopPositions = [0, Math.floor(coords.length / 2), coords.length - 1]
-      
+      const stopPositions = [
+        0,
+        Math.floor(coords.length / 2),
+        coords.length - 1,
+      ]
+
       stopPositions.forEach((pos, stopIndex) => {
         if (pos < coords.length) {
           stops.push({
@@ -246,12 +255,12 @@ const ComparisonMap: React.FC = () => {
             name: `${route.name} Stop ${stopIndex + 1}`,
             location: coords[pos],
             routes: [route.name],
-            type: 'bus'
+            type: 'bus',
           })
         }
       })
     })
-    
+
     return stops
   }
 
@@ -259,41 +268,41 @@ const ComparisonMap: React.FC = () => {
   const handleRunSimulation = async (config: SimulationControlConfig) => {
     setIsSimulating(true)
     setShowSimulation(true)
-    
+
     try {
       // Convert current routes to simulation format
       const currentRoutes = [
         ...convertToRouteSegments(busRoutesData),
-        ...convertToRouteSegments(hblrData)
+        ...convertToRouteSegments(hblrData),
       ]
-      
+
       // Convert proposed routes (current + new routes)
       const proposedRoutes = [
         ...currentRoutes,
-        ...convertToRouteSegments(newRoutes)
+        ...convertToRouteSegments(newRoutes),
       ]
-      
+
       // Generate stops
       const currentStops = generateTransitStops(currentRoutes)
       const proposedStops = [
         ...currentStops,
-        ...generateTransitStops(convertToRouteSegments(newRoutes))
+        ...generateTransitStops(convertToRouteSegments(newRoutes)),
       ]
-      
+
       // Create simulation engine
       const engine = new SimulationEngine(currentRoutes, currentStops)
-      
+
       // Generate sample trips
       const trips = engine.generateSampleTrips(config.tripCount)
-      
+
       // Run comparison simulation
       const result = await engine.compareScenarios(
         trips,
         proposedRoutes,
         proposedStops,
-        config.timeOfDay
+        config.timeOfDay,
       )
-      
+
       setSimulationResult(result)
     } catch (error) {
       console.error('Simulation failed:', error)
@@ -305,10 +314,10 @@ const ComparisonMap: React.FC = () => {
 
   return (
     <>
-      <div className="flex h-full w-full">
+      <div className="flex h-full w-full min-h-0">
         {/* Maps Section */}
-        <div className="flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 p-4">
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 p-4 min-h-0">
             {/* Current State Map */}
             <div className="flex flex-col h-full rounded-lg overflow-hidden">
               <h2 className="text-center text-xl font-bold mb-2 flex-shrink-0">
@@ -388,8 +397,8 @@ const ComparisonMap: React.FC = () => {
         </div>
 
         {/* Simulation Panel */}
-        <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300">
-          <div className="flex border-b border-gray-300">
+        <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full">
+          <div className="flex border-b border-gray-300 flex-shrink-0">
             <button
               onClick={() => setShowSimulation(false)}
               className={`flex-1 px-4 py-2 text-sm font-medium ${
@@ -411,14 +420,15 @@ const ComparisonMap: React.FC = () => {
               Simulation
             </button>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-4">
+
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
             {!showSimulation ? (
               <div className="text-gray-600">
                 <h3 className="text-lg font-semibold mb-3">Draw New Routes</h3>
                 <p className="text-sm mb-4">
-                  Use the drawing tools on the Enhanced Transit map to add new transit routes. 
-                  Click the line tool in the map controls to start drawing.
+                  Use the drawing tools on the Enhanced Transit map to add new
+                  transit routes. Click the line tool in the map controls to
+                  start drawing.
                 </p>
                 {newRoutes.features.length > 0 && (
                   <div>
@@ -435,11 +445,11 @@ const ComparisonMap: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <SimulationControls 
+                <SimulationControls
                   onRunSimulation={handleRunSimulation}
                   isLoading={isSimulating}
                 />
-                <SimulationResults 
+                <SimulationResults
                   result={simulationResult}
                   isLoading={isSimulating}
                 />

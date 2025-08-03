@@ -15,16 +15,23 @@ export interface SimulationControlConfig {
   customTime?: string
 }
 
-export default function SimulationControls({ onRunSimulation, isLoading }: SimulationControlsProps) {
+export default function SimulationControls({
+  onRunSimulation,
+  isLoading,
+}: SimulationControlsProps) {
   const [timeOfDay, setTimeOfDay] = useState<number>(480) // 8 AM default
   const [tripCount, setTripCount] = useState<number>(25)
-  const [scenario, setScenario] = useState<'rush-hour' | 'off-peak' | 'custom'>('rush-hour')
+  const [scenario, setScenario] = useState<'rush-hour' | 'off-peak' | 'custom'>(
+    'rush-hour',
+  )
   const [customTime, setCustomTime] = useState<string>('08:00')
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false)
 
-  const handleScenarioChange = (newScenario: 'rush-hour' | 'off-peak' | 'custom') => {
+  const handleScenarioChange = (
+    newScenario: 'rush-hour' | 'off-peak' | 'custom',
+  ) => {
     setScenario(newScenario)
-    
+
     switch (newScenario) {
       case 'rush-hour':
         setTimeOfDay(480) // 8 AM
@@ -49,9 +56,9 @@ export default function SimulationControls({ onRunSimulation, isLoading }: Simul
       timeOfDay,
       tripCount,
       scenario,
-      customTime: scenario === 'custom' ? customTime : undefined
+      customTime: scenario === 'custom' ? customTime : undefined,
     }
-    
+
     onRunSimulation(config)
   }
 
@@ -88,7 +95,7 @@ export default function SimulationControls({ onRunSimulation, isLoading }: Simul
             Rush Hour
             <div className="text-xs text-gray-500">8:00 AM</div>
           </button>
-          
+
           <button
             onClick={() => handleScenarioChange('off-peak')}
             className={`p-3 text-sm rounded-lg border ${
@@ -101,7 +108,7 @@ export default function SimulationControls({ onRunSimulation, isLoading }: Simul
             Off-Peak
             <div className="text-xs text-gray-500">10:00 AM</div>
           </button>
-          
+
           <button
             onClick={() => handleScenarioChange('custom')}
             className={`p-3 text-sm rounded-lg border ${
@@ -172,21 +179,28 @@ export default function SimulationControls({ onRunSimulation, isLoading }: Simul
       {/* Advanced Settings */}
       {showAdvanced && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Advanced Settings</h4>
-          
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Advanced Settings
+          </h4>
+
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <label className="block text-gray-600 mb-1">Walking Speed (m/min)</label>
+              <label className="block text-gray-600 mb-1">
+                Walking Speed (m/min)
+              </label>
               <div className="text-gray-800">Normal: 80, Rush: 70</div>
             </div>
             <div>
-              <label className="block text-gray-600 mb-1">Bus Speed (m/min)</label>
+              <label className="block text-gray-600 mb-1">
+                Bus Speed (m/min)
+              </label>
               <div className="text-gray-800">Normal: 400, Rush: 300</div>
             </div>
           </div>
-          
+
           <div className="mt-3 text-xs text-gray-500">
-            Speed adjustments are automatically applied based on selected time scenario
+            Speed adjustments are automatically applied based on selected time
+            scenario
           </div>
         </div>
       )}
