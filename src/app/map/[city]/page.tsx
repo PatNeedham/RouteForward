@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import UnsupportedCity from '@/components/map/UnsupportedCity'
-import ClientMap from '@/components/map/ClientMap'
+import MapWithHeader from '@/components/map/MapWithHeader'
 import { semanticColors } from '@/config/colors'
 
 // Define a list of supported cities
@@ -17,22 +17,28 @@ export default async function MapPage({
 
   return (
     <div className="flex flex-col h-screen w-screen bg-gray-800 text-white">
-      <header className="flex items-center justify-between p-4 bg-gray-900 shadow-md z-10">
-        <Link
-          href="/"
-          className={`flex items-center ${semanticColors.link.primary.color} ${semanticColors.link.primary.hover}`}
-        >
-          <ChevronLeft className="h-6 w-6" />
-          Back to Home
-        </Link>
-        <h1 className="text-2xl font-bold text-center flex-grow capitalize">
-          {city.replace('-', ' ')} Transit Simulator
-        </h1>
-        <div className="w-20"> {/* Spacer to balance the layout */}</div>
-      </header>
-      <main className="flex-grow relative">
-        {isSupported ? <ClientMap /> : <UnsupportedCity city={city} />}
-      </main>
+      {isSupported ? (
+        <MapWithHeader city={city} />
+      ) : (
+        <>
+          <header className="flex items-center justify-between p-4 bg-gray-900 shadow-md z-10">
+            <Link
+              href="/"
+              className={`flex items-center ${semanticColors.link.primary.color} ${semanticColors.link.primary.hover}`}
+            >
+              <ChevronLeft className="h-6 w-6" />
+              Back to Home
+            </Link>
+            <h1 className="text-2xl font-bold text-center flex-grow capitalize">
+              {city.replace('-', ' ')} Transit Simulator
+            </h1>
+            <div className="w-20"> {/* Spacer to balance the layout */}</div>
+          </header>
+          <main className="flex-grow relative">
+            <UnsupportedCity city={city} />
+          </main>
+        </>
+      )}
     </div>
   )
 }

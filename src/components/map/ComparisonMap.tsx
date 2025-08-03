@@ -25,10 +25,9 @@ import streetNetworkData from '@/data/jersey-city/street-network.json'
 
 // Components
 import TimeSlider from './TimeSlider'
-import ShareButton from './ShareButton'
 
 // Hooks and utilities
-import { useUrlState } from '@/hooks/useUrlState'
+import { MapState } from '@/types/mapState'
 import { semanticColors } from '@/config/colors'
 
 // Leaflet Icon workaround
@@ -108,20 +107,26 @@ const GeomanControl = ({ onCreate }: { onCreate: (e: any) => void }) => {
 const MapViewportSync = ({
   onViewportChange,
   currentViewport,
+  isController = false,
 }: {
   onViewportChange: (center: [number, number], zoom: number) => void
   currentViewport: { center: [number, number]; zoom: number }
+  isController?: boolean
 }) => {
   const map = useMapEvents({
     moveend: () => {
-      const center = map.getCenter()
-      const zoom = map.getZoom()
-      onViewportChange([center.lat, center.lng], zoom)
+      if (isController) {
+        const center = map.getCenter()
+        const zoom = map.getZoom()
+        onViewportChange([center.lat, center.lng], zoom)
+      }
     },
     zoomend: () => {
-      const center = map.getCenter()
-      const zoom = map.getZoom()
-      onViewportChange([center.lat, center.lng], zoom)
+      if (isController) {
+        const center = map.getCenter()
+        const zoom = map.getZoom()
+        onViewportChange([center.lat, center.lng], zoom)
+      }
     },
   })
 
@@ -144,14 +149,21 @@ const MapViewportSync = ({
   return null
 }
 
-const ComparisonMap: React.FC = () => {
-  // Use the new URL state management hook
-  const { mapState, updateMapState, shareableUrl, isValidUrl, resetToDefault } =
-    useUrlState({
-      enableHistory: true,
-      debounceMs: 300,
-    })
+interface ComparisonMapProps {
+  mapState: MapState
+  updateMapState: (partial: Partial<MapState>) => void
+  shareableUrl: string
+  isValidUrl: boolean
+  resetToDefault: () => void
+}
 
+const ComparisonMap: React.FC<ComparisonMapProps> = ({
+  mapState,
+  updateMapState,
+  shareableUrl,
+  isValidUrl,
+  resetToDefault,
+}) => {
   // Local state for tracking initialization
   const [isInitialized, setIsInitialized] = useState(false)
 
@@ -275,12 +287,6 @@ const ComparisonMap: React.FC = () => {
 
   return (
     <div className="relative h-full w-full">
-      {/* Share Button - positioned relative to the main container */}
-      <ShareButton
-        shareableUrl={shareableUrl}
-        className="absolute top-4 right-4 z-[1000]"
-      />
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full w-full p-4">
         {/* Current State Map */}
         <div className="flex flex-col h-full rounded-lg overflow-hidden">
@@ -315,6 +321,7 @@ const ComparisonMap: React.FC = () => {
               <MapViewportSync
                 onViewportChange={handleViewportChange}
                 currentViewport={mapState.viewport}
+                isController={true}
               />
             </MapContainer>
           </div>
@@ -358,6 +365,7 @@ const ComparisonMap: React.FC = () => {
               <MapViewportSync
                 onViewportChange={handleViewportChange}
                 currentViewport={mapState.viewport}
+                isController={false}
               />
             </MapContainer>
           </div>
