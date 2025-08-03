@@ -131,7 +131,10 @@ const MapViewportSync = ({
   })
 
   // Update map view when viewport state changes (e.g., from URL)
+  // Only sync viewport from URL state if this is the controller map
   useEffect(() => {
+    if (!isController) return
+
     const mapCenter = map.getCenter()
     const mapZoom = map.getZoom()
     const [stateLat, stateLng] = currentViewport.center
@@ -144,7 +147,7 @@ const MapViewportSync = ({
     if (centerDiff > 0.001 || zoomDiff > 0.1) {
       map.setView(currentViewport.center, currentViewport.zoom)
     }
-  }, [map, currentViewport])
+  }, [map, currentViewport, isController])
 
   return null
 }
