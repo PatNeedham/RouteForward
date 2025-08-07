@@ -4,18 +4,39 @@ updates:
   - package-ecosystem: 'npm'
     directory: '/' # Location of package manifests
     schedule:
-      interval: 'daily'
-    # Add labels for npm pull requests
-    labels:
-      - 'npm'
-      - 'dependencies'
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/New_York'
+    # Group related updates together to reduce PR noise
+    groups:
+      production-dependencies:
+        dependency-type: 'production'
+      development-dependencies:
+        dependency-type: 'development'
+    # Open pull requests for security updates immediately
+    open-pull-requests-limit: 10
+    # Allow Dependabot to rebase PRs when conflicts occur
+    rebase-strategy: 'auto'
+    # Commit message configuration
+    commit-message:
+      prefix: 'npm'
+      prefix-development: 'npm-dev'
+      include: 'scope'
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: 'daily'
-    # Add labels for GitHub Actions pull requests
-    labels:
-      - 'github-actions'
-      - 'dependencies'
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/New_York'
+    # Open pull requests for security updates immediately
+    open-pull-requests-limit: 5
+    # Allow Dependabot to rebase PRs when conflicts occur
+    rebase-strategy: 'auto'
+    # Commit message configuration
+    commit-message:
+      prefix: 'actions'
+      include: 'scope'
