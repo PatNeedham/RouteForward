@@ -136,7 +136,7 @@ When code quality tools (CodeRabbit, SonarQube, etc.) leave comments on pull req
 
 ```typescript
 // For simulation/visualization contexts:
-// NOSONAR - Math.random() is safe for [specific purpose: simulation/demo/visualization]
+// NOSONAR - Math.random() is safe for simulation, demo, or visualization purposes
 Math.random() // nosemgrep: javascript.lang.security.audit.math-random-detected
 
 // For security contexts: Use getSecureRandomFloat() function
