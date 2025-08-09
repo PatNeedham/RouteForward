@@ -38,10 +38,10 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
   }
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-11/12 md:w-1/2 p-4 bg-gray-800/80 rounded-lg shadow-lg z-[1000] backdrop-blur-sm">
+    <div className="w-full p-3 sm:p-4 bg-gray-800/90 rounded-lg shadow-lg backdrop-blur-sm">
       <label
         htmlFor="time-slider"
-        className="block text-center text-white mb-2"
+        className="block text-center text-white mb-2 text-sm sm:text-base"
       >
         Simulation Time: {formatTime(time)}
       </label>
@@ -53,7 +53,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
         step="15"
         value={time}
         onChange={handleChange}
-        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer touch-manipulation"
       />
     </div>
   )
