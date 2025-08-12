@@ -1,0 +1,165 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2768",
+        "stop_code": "20930",
+        "stop_name": "MONTGOMERY ST AT JFK BLVD",
+        "stop_lat": 40.726589,
+        "stop_lon": -74.071141,
+        "zone_id": "0",
+        "routes": ["119", "1", "87"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.071141, 40.726589]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2769",
+        "stop_code": "20931",
+        "stop_name": "NEWARK AVE AT GROVE ST",
+        "stop_lat": 40.720123,
+        "stop_lon": -74.038456,
+        "zone_id": "0",
+        "routes": ["1", "87"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.038456, 40.720123]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2770",
+        "stop_code": "20932",
+        "stop_name": "EXCHANGE PLACE",
+        "stop_lat": 40.716667,
+        "stop_lon": -74.031944,
+        "zone_id": "0",
+        "routes": ["1", "119"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.031944, 40.716667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2771",
+        "stop_code": "20933",
+        "stop_name": "NEWPORT PATH STATION",
+        "stop_lat": 40.726851,
+        "stop_lon": -74.034721,
+        "zone_id": "0",
+        "routes": ["1", "119", "125"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.034721, 40.726851]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2772",
+        "stop_code": "20934",
+        "stop_name": "JOURNAL SQUARE",
+        "stop_lat": 40.732056,
+        "stop_lon": -74.061944,
+        "zone_id": "0",
+        "routes": ["1", "9", "119"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.061944, 40.732056]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2773",
+        "stop_code": "20935",
+        "stop_name": "HOBOKEN TERMINAL",
+        "stop_lat": 40.735657,
+        "stop_lon": -74.029749,
+        "zone_id": "0",
+        "routes": ["119", "125"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.029749, 40.735657]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2774",
+        "stop_code": "20936",
+        "stop_name": "WEEHAWKEN PORT IMPERIAL",
+        "stop_lat": 40.770556,
+        "stop_lon": -74.025278,
+        "zone_id": "0",
+        "routes": ["125"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.025278, 40.770556]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2775",
+        "stop_code": "20937",
+        "stop_name": "BAYONNE 8TH ST",
+        "stop_lat": 40.669167,
+        "stop_lon": -74.063889,
+        "zone_id": "0",
+        "routes": ["9"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.063889, 40.669167]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2776",
+        "stop_code": "20938",
+        "stop_name": "LIBERTY STATE PARK",
+        "stop_lat": 40.704722,
+        "stop_lon": -74.056944,
+        "zone_id": "0",
+        "routes": ["9", "1"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.056944, 40.704722]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "stop_id": "2777",
+        "stop_code": "20939",
+        "stop_name": "WASHINGTON ST AT 14TH ST",
+        "stop_lat": 40.748333,
+        "stop_lon": -74.024722,
+        "zone_id": "0",
+        "routes": ["87"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.024722, 40.748333]
+      }
+    }
+  ]
+}

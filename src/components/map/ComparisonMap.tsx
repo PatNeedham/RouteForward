@@ -30,6 +30,7 @@ import SimulationControls, {
   SimulationControlConfig,
 } from '@/components/simulation/SimulationControls'
 import SimulationResults from '@/components/simulation/SimulationResults'
+import PedestrianMapOverlay from '@/components/simulation/PedestrianMapOverlay'
 
 // Simulation Engine
 import { SimulationEngine } from '@/lib/simulation/SimulationEngine'
@@ -182,6 +183,8 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
     useState<ComparisonResult | null>(null)
   const [isSimulating, setIsSimulating] = useState(false)
   const [showSimulation, setShowSimulation] = useState(false)
+  const [showPedestrianSim, setShowPedestrianSim] = useState(false)
+  const [lightTheme, setLightTheme] = useState(false)
 
   useEffect(() => {
     setIsInitialized(true)
@@ -455,6 +458,13 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
     }
   }
 
+  // Get tile layer URL based on theme
+  const getTileLayerUrl = () => {
+    return lightTheme
+      ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+      : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+  }
+
   return (
     <div className="flex h-screen w-full">
       {/* Maps Section */}
@@ -472,7 +482,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
                 style={{ height: '100%', width: '100%' }}
               >
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  url={getTileLayerUrl()}
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
                 {mapState.layers?.streetNetwork && (
@@ -519,7 +529,7 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
                   {/* This is where the drawing controls are added */}
                 </FeatureGroup>
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  url={getTileLayerUrl()}
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
                 {mapState.layers?.streetNetwork && (
@@ -544,6 +554,21 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
                 />
                 <GeoJSON data={mapState.routes} style={newRouteStyle} />
                 <GeomanControl onCreate={handleRouteCreate} />
+                {showPedestrianSim && (
+                  <PedestrianMapOverlay
+                    stops={generateTransitStops([
+                      ...convertToRouteSegments(busRoutesData),
+                      ...convertToRouteSegments(hblrData, 'rail'),
+                      ...convertToRouteSegments(mapState.routes),
+                    ])}
+                    routes={[
+                      ...convertToRouteSegments(busRoutesData),
+                      ...convertToRouteSegments(hblrData, 'rail'),
+                      ...convertToRouteSegments(mapState.routes),
+                    ]}
+                    showDensityHeatmap={true}
+                  />
+                )}
                 <MapViewportSync
                   onViewportChange={handleViewportChange}
                   currentViewport={mapState.viewport}
@@ -565,6 +590,36 @@ const ComparisonMap: React.FC<ComparisonMapProps> = ({
 
       {/* Simulation Panel - Fixed height with internal scrolling */}
       <div className="w-96 flex flex-col bg-gray-100 border-l border-gray-300 h-full overflow-hidden max-h-screen">
+        {/* Theme and simulation controls */}
+        <div className="p-4 border-b border-gray-300 bg-gray-50">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium text-gray-700">Map Theme</label>
+            <button
+              onClick={() => setLightTheme(!lightTheme)}
+              className={`px-3 py-1 rounded text-xs font-medium ${
+                lightTheme
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {lightTheme ? 'Light' : 'Dark'}
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">Pedestrian Simulation</label>
+            <button
+              onClick={() => setShowPedestrianSim(!showPedestrianSim)}
+              className={`px-3 py-1 rounded text-xs font-medium ${
+                showPedestrianSim
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {showPedestrianSim ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </div>
+        
         <div className="flex border-b border-gray-300 flex-shrink-0">
           <button
             onClick={() => setShowSimulation(false)}

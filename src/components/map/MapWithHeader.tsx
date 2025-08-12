@@ -1,11 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { ChevronLeft } from 'lucide-react'
 import { useUrlState } from '@/hooks/useUrlState'
 import ShareButton from './ShareButton'
-import ComparisonMap from './ComparisonMap'
 import { semanticColors } from '@/config/colors'
+
+// Dynamic import for map component to avoid SSR issues
+const ComparisonMap = dynamic(() => import('./ComparisonMap'), { 
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-full">Loading map...</div>
+})
 
 interface MapWithHeaderProps {
   city: string
