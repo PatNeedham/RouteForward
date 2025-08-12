@@ -8,7 +8,13 @@ import {
   SimulationConfig,
   SimulationResult,
   ComparisonResult,
+  PedestrianSimConfig,
+  WeatherConditions,
+  CrowdMetrics,
 } from '@/types/simulation'
+import { PathfindingSystem } from './PathfindingSystem'
+import { CrowdDynamicsSystem } from './CrowdDynamicsSystem'
+import { PedestrianAgentFactory } from './PedestrianAgentFactory'
 
 // Secure random number generator utility for simulation data generation
 // Note: This is used for simulation sample data only, not security-sensitive operations
@@ -33,11 +39,19 @@ export class SimulationEngine {
   private stops: TransitStop[]
   private pedestrians: PedestrianAgent[]
   private buses: BusAgent[]
+  // Enhanced pedestrian simulation systems
+  private pedestrianConfig: PedestrianSimConfig
+  private pathfindingSystem: PathfindingSystem
+  private crowdDynamicsSystem: CrowdDynamicsSystem
+  private agentFactory: PedestrianAgentFactory
+  private isRunning: boolean = false
+  private currentTime: number = 0
 
   constructor(
     routes: RouteSegment[],
     stops: TransitStop[],
     config?: Partial<SimulationConfig>,
+    pedestrianConfig?: Partial<PedestrianSimConfig>,
   ) {
     this.routes = routes
     this.stops = stops
@@ -61,6 +75,46 @@ export class SimulationEngine {
       },
       ...config,
     }
+
+    // Default pedestrian simulation configuration
+    this.pedestrianConfig = {
+      maxAgents: 1000,
+      timeStep: 1.0, // 1 second steps for pedestrian simulation
+      crowdDynamics: {
+        separationRadius: 2.0, // meters
+        alignmentRadius: 5.0,
+        cohesionRadius: 8.0,
+        maxForce: 3.0,
+        avoidanceForce: 5.0,
+      },
+      accessibility: {
+        wheelchairSpeedFactor: 0.6,
+        mobilityAidSpeedFactor: 0.7,
+        elderlySpeedFactor: 0.8,
+        childSpeedFactor: 0.9,
+      },
+      weather: {
+        temperature: 20, // Celsius
+        precipitation: 0, // No precipitation
+        windSpeed: 5, // m/s
+        visibility: 1.0, // Clear
+        type: 'clear',
+      },
+      sidewalkNetwork: {
+        nodes: this.generateDefaultSidewalkNetwork(),
+        obstacles: [],
+      },
+      ...pedestrianConfig,
+    }
+
+    // Initialize subsystems
+    this.pathfindingSystem = new PathfindingSystem(
+      this.pedestrianConfig.sidewalkNetwork,
+    )
+    this.crowdDynamicsSystem = new CrowdDynamicsSystem(
+      this.pedestrianConfig.crowdDynamics,
+    )
+    this.agentFactory = new PedestrianAgentFactory(this.pedestrianConfig)
   }
 
   // Calculate straight-line distance between two points using Haversine formula
@@ -470,5 +524,221 @@ export class SimulationEngine {
     }
 
     return trips
+  }
+
+  // Generate a default sidewalk network based on transit stops
+  private generateDefaultSidewalkNetwork() {
+    const nodes = []
+    const nodeMap = new Map()
+
+    // Create nodes around each transit stop
+    for (const stop of this.stops) {
+      const baseId = `stop_${stop.id}`
+      
+      // Main stop node
+      const mainNode = {
+        id: baseId,
+        position: stop.location,
+        connections: [] as string[],
+        width: 3.0, // 3 meter wide sidewalk
+        accessibility: 'full' as const,
+        crowdCapacity: 10, // people per meter
+      }
+      nodes.push(mainNode)
+      nodeMap.set(baseId, mainNode)
+
+      // Create approach nodes around the stop (north, south, east, west)
+      const approaches = [
+        { id: `${baseId}_n`, lat: stop.location.lat + 0.001, lng: stop.location.lng },
+        { id: `${baseId}_s`, lat: stop.location.lat - 0.001, lng: stop.location.lng },
+        { id: `${baseId}_e`, lat: stop.location.lat, lng: stop.location.lng + 0.001 },
+        { id: `${baseId}_w`, lat: stop.location.lat, lng: stop.location.lng - 0.001 },
+      ]
+
+      for (const approach of approaches) {
+        const approachNode = {
+          id: approach.id,
+          position: { lat: approach.lat, lng: approach.lng },
+          connections: [baseId],
+          width: 2.5,
+          accessibility: 'full' as const,
+          crowdCapacity: 8,
+        }
+        nodes.push(approachNode)
+        nodeMap.set(approach.id, approachNode)
+        mainNode.connections.push(approach.id)
+      }
+    }
+
+    // Connect nearby stops (within 500m)
+    for (let i = 0; i < this.stops.length; i++) {
+      for (let j = i + 1; j < this.stops.length; j++) {
+        const distance = this.calculateDistance(
+          this.stops[i].location,
+          this.stops[j].location,
+        )
+        
+        if (distance < 500) { // 500 meters
+          const node1Id = `stop_${this.stops[i].id}`
+          const node2Id = `stop_${this.stops[j].id}`
+          const node1 = nodeMap.get(node1Id)
+          const node2 = nodeMap.get(node2Id)
+          
+          if (node1 && node2) {
+            node1.connections.push(node2Id)
+            node2.connections.push(node1Id)
+          }
+        }
+      }
+    }
+
+    return nodes
+  }
+
+  // Enhanced pedestrian simulation methods
+  public addPedestrianAgents(count: number, rushHour: boolean = false): PedestrianAgent[] {
+    const newAgents: PedestrianAgent[] = []
+    
+    if (this.pedestrians.length + count > this.pedestrianConfig.maxAgents) {
+      count = this.pedestrianConfig.maxAgents - this.pedestrians.length
+    }
+
+    // Generate realistic trips around transit stops
+    if (this.stops.length === 0) {
+      return newAgents
+    }
+
+    const agentsPerStop = Math.max(1, Math.floor(count / this.stops.length))
+    const remainingAgents = count - (agentsPerStop * this.stops.length)
+    
+    for (let i = 0; i < this.stops.length; i++) {
+      const stop = this.stops[i]
+      const stopsCount = agentsPerStop + (i < remainingAgents ? 1 : 0) // Distribute remaining agents
+      
+      if (stopsCount > 0) {
+        const trips = this.agentFactory.generateStopCentricTrips(stop, stopsCount)
+        const agents = this.agentFactory.createAgentBatch(trips, rushHour)
+        
+        // Set paths for each agent
+        for (const agent of agents) {
+          const accessibilityRequired = 
+            agent.agentType === 'wheelchair' ? 'full' : 
+            agent.agentType === 'mobility_aid' ? 'limited' : undefined
+          
+          agent.route = this.pathfindingSystem.findPath(
+            agent.origin,
+            agent.destination,
+            accessibilityRequired,
+          )
+        }
+        
+        newAgents.push(...agents)
+      }
+    }
+
+    this.pedestrians.push(...newAgents)
+    return newAgents
+  }
+
+  public updatePedestrianSimulation(deltaTime: number): void {
+    if (!this.isRunning || this.pedestrians.length === 0) return
+
+    // Update each pedestrian agent
+    for (const agent of this.pedestrians) {
+      if (agent.isAtDestination) continue
+
+      // Calculate forces
+      const goalForce = this.crowdDynamicsSystem.calculateGoalForce(agent)
+      const flockingForces = this.crowdDynamicsSystem.calculateFlockingForces(
+        agent,
+        this.pedestrians,
+      )
+      const obstacleForce = this.pathfindingSystem.getObstacleAvoidanceForce(
+        agent.currentPosition,
+        agent.velocity,
+      )
+
+      // Combine forces
+      const totalForce = {
+        x: goalForce.x * 3.0 + flockingForces.x + obstacleForce.x,
+        y: goalForce.y * 3.0 + flockingForces.y + obstacleForce.y,
+      }
+
+      // Update velocity
+      agent.velocity.x += totalForce.x * deltaTime
+      agent.velocity.y += totalForce.y * deltaTime
+
+      // Limit velocity to max speed
+      const speed = Math.sqrt(
+        agent.velocity.x * agent.velocity.x + agent.velocity.y * agent.velocity.y,
+      )
+      if (speed > agent.maxSpeed / 60) { // Convert to m/s
+        const factor = (agent.maxSpeed / 60) / speed
+        agent.velocity.x *= factor
+        agent.velocity.y *= factor
+      }
+
+      // Update position
+      this.agentFactory.updateAgent(agent, deltaTime)
+    }
+
+    // Remove agents that have reached their destination
+    this.pedestrians = this.pedestrians.filter(agent => !agent.isAtDestination)
+  }
+
+  public startPedestrianSimulation(): void {
+    this.isRunning = true
+    this.currentTime = 0
+  }
+
+  public stopPedestrianSimulation(): void {
+    this.isRunning = false
+  }
+
+  public getPedestrianAgents(): PedestrianAgent[] {
+    return [...this.pedestrians]
+  }
+
+  public getCrowdMetrics(center: Point, radius: number): CrowdMetrics {
+    return this.crowdDynamicsSystem.calculateCrowdMetrics(
+      this.pedestrians,
+      center,
+      radius,
+    )
+  }
+
+  public setWeatherConditions(weather: WeatherConditions): void {
+    this.pedestrianConfig.weather = weather
+    // Update existing agents' speeds based on new weather
+    for (const agent of this.pedestrians) {
+      // Recalculate speed with new weather conditions
+      // This would normally be done in the agent factory, but we'll do a simple update here
+      const weatherFactor = this.calculateWeatherFactor(weather, agent.weatherSensitivity)
+      agent.walkingSpeed = agent.maxSpeed * weatherFactor
+    }
+  }
+
+  private calculateWeatherFactor(weather: WeatherConditions, sensitivity: number): number {
+    let factor = 1.0
+    
+    if (weather.temperature < 0) {
+      factor *= 1 - sensitivity * 0.3
+    } else if (weather.temperature > 30) {
+      factor *= 1 - sensitivity * 0.2
+    }
+    
+    if (weather.precipitation > 0) {
+      factor *= 1 - sensitivity * weather.precipitation * 0.4
+    }
+    
+    if (weather.windSpeed > 10) {
+      factor *= 1 - sensitivity * 0.2
+    }
+    
+    if (weather.visibility < 0.8) {
+      factor *= 1 - sensitivity * (1 - weather.visibility) * 0.3
+    }
+    
+    return Math.max(factor, 0.3)
   }
 }
